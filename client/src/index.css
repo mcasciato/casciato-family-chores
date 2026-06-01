@@ -3,7 +3,118 @@
    ========================================== */
 
 :root {
-  /* Color Palette */
+  /* ==================== ☀️ LIGHT THEME (Default) ==================== */
+  --bg-dark: #f8fafc; /* Slate 50 */
+  --bg-dark-refract: rgba(241, 245, 249, 0.7); /* Slate 100 with blur */
+  --card-dark: rgba(255, 255, 255, 0.75);
+  --card-border: rgba(15, 23, 42, 0.08); /* Slate 900 border */
+  --card-border-glow: rgba(15, 23, 42, 0.15);
+  
+  --text-white: #0f172a; /* Slate 900 */
+  --text-muted: #64748b; /* Slate 500 */
+  --text-dark: #ffffff; /* Contrast text on dark background accents */
+
+  /* Gradient background parts */
+  --bg-gradient-1: rgba(139, 92, 246, 0.05);
+  --bg-gradient-2: rgba(14, 165, 233, 0.05);
+  --bg-gradient-3: rgba(16, 185, 129, 0.03);
+
+  /* Secondary button backgrounds */
+  --btn-secondary-bg: rgba(15, 23, 42, 0.05);
+  --btn-secondary-bg-hover: rgba(15, 23, 42, 0.08);
+
+  /* Theme Accents (optimised for light mode contrast) */
+  --theme-violet: #7c3aed;
+  --theme-violet-glow: rgba(124, 58, 237, 0.12);
+  --theme-violet-border: rgba(124, 58, 237, 0.25);
+
+  --theme-amber: #d97706;
+  --theme-amber-glow: rgba(217, 119, 6, 0.12);
+  --theme-amber-border: rgba(217, 119, 6, 0.25);
+
+  --theme-emerald: #059669;
+  --theme-emerald-glow: rgba(5, 150, 105, 0.12);
+  --theme-emerald-border: rgba(5, 150, 105, 0.25);
+
+  --theme-rose: #e11d48;
+  --theme-rose-glow: rgba(225, 29, 72, 0.12);
+  --theme-rose-border: rgba(225, 29, 72, 0.25);
+
+  --theme-blue: #0284c7;
+  --theme-blue-glow: rgba(2, 132, 199, 0.12);
+  --theme-blue-border: rgba(2, 132, 199, 0.25);
+
+  --theme-parent: #2563eb;
+  --theme-parent-glow: rgba(37, 99, 235, 0.12);
+  --theme-parent-border: rgba(37, 99, 235, 0.25);
+
+  /* Fonts */
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Shadows */
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
+  --shadow-glow: 0 0 20px rgba(124, 58, 237, 0.1);
+
+  /* Transitions */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ☀️ Strict light theme manual selector */
+[data-theme="light"] {
+  --bg-dark: #f8fafc;
+  --bg-dark-refract: rgba(241, 245, 249, 0.7);
+  --card-dark: rgba(255, 255, 255, 0.75);
+  --card-border: rgba(15, 23, 42, 0.08);
+  --card-border-glow: rgba(15, 23, 42, 0.15);
+  
+  --text-white: #0f172a;
+  --text-muted: #64748b;
+  --text-dark: #ffffff;
+
+  --bg-gradient-1: rgba(139, 92, 246, 0.05);
+  --bg-gradient-2: rgba(14, 165, 233, 0.05);
+  --bg-gradient-3: rgba(16, 185, 129, 0.03);
+
+  --btn-secondary-bg: rgba(15, 23, 42, 0.05);
+  --btn-secondary-bg-hover: rgba(15, 23, 42, 0.08);
+
+  --theme-violet: #7c3aed;
+  --theme-violet-glow: rgba(124, 58, 237, 0.12);
+  --theme-violet-border: rgba(124, 58, 237, 0.25);
+
+  --theme-amber: #d97706;
+  --theme-amber-glow: rgba(217, 119, 6, 0.12);
+  --theme-amber-border: rgba(217, 119, 6, 0.25);
+
+  --theme-emerald: #059669;
+  --theme-emerald-glow: rgba(5, 150, 105, 0.12);
+  --theme-emerald-border: rgba(5, 150, 105, 0.25);
+
+  --theme-rose: #e11d48;
+  --theme-rose-glow: rgba(225, 29, 72, 0.12);
+  --theme-rose-border: rgba(225, 29, 72, 0.25);
+
+  --theme-blue: #0284c7;
+  --theme-blue-glow: rgba(2, 132, 199, 0.12);
+  --theme-blue-border: rgba(2, 132, 199, 0.25);
+
+  --theme-parent: #2563eb;
+  --theme-parent-glow: rgba(37, 99, 235, 0.12);
+  --theme-parent-border: rgba(37, 99, 235, 0.25);
+
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
+  --shadow-glow: 0 0 20px rgba(124, 58, 237, 0.1);
+}
+
+/* Helper mixin for dark colors definition */
+@mixin dark-theme-variables {
   --bg-dark: #090a0f;
   --bg-dark-refract: rgba(13, 15, 24, 0.6);
   --card-dark: rgba(20, 24, 38, 0.6);
@@ -14,7 +125,13 @@
   --text-muted: #8e95ad;
   --text-dark: #12131a;
 
-  /* Theme Accents */
+  --bg-gradient-1: rgba(139, 92, 246, 0.08);
+  --bg-gradient-2: rgba(14, 165, 233, 0.08);
+  --bg-gradient-3: rgba(16, 185, 129, 0.04);
+
+  --btn-secondary-bg: rgba(255, 255, 255, 0.05);
+  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.1);
+
   --theme-violet: #8b5cf6;
   --theme-violet-glow: rgba(139, 92, 246, 0.15);
   --theme-violet-border: rgba(139, 92, 246, 0.3);
@@ -39,20 +156,110 @@
   --theme-parent-glow: rgba(59, 130, 246, 0.15);
   --theme-parent-border: rgba(59, 130, 246, 0.3);
 
-  /* Fonts */
-  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-
-  /* Shadows */
   --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
   --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.2);
+}
 
-  /* Transitions */
-  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+/* 🌙 Dynamic prefers-color-scheme Dark Mode */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-dark: #090a0f;
+    --bg-dark-refract: rgba(13, 15, 24, 0.6);
+    --card-dark: rgba(20, 24, 38, 0.6);
+    --card-border: rgba(255, 255, 255, 0.07);
+    --card-border-glow: rgba(255, 255, 255, 0.15);
+    
+    --text-white: #ffffff;
+    --text-muted: #8e95ad;
+    --text-dark: #12131a;
+
+    --bg-gradient-1: rgba(139, 92, 246, 0.08);
+    --bg-gradient-2: rgba(14, 165, 233, 0.08);
+    --bg-gradient-3: rgba(16, 185, 129, 0.04);
+
+    --btn-secondary-bg: rgba(255, 255, 255, 0.05);
+    --btn-secondary-bg-hover: rgba(255, 255, 255, 0.1);
+
+    --theme-violet: #8b5cf6;
+    --theme-violet-glow: rgba(139, 92, 246, 0.15);
+    --theme-violet-border: rgba(139, 92, 246, 0.3);
+
+    --theme-amber: #f59e0b;
+    --theme-amber-glow: rgba(245, 158, 11, 0.15);
+    --theme-amber-border: rgba(245, 158, 11, 0.3);
+
+    --theme-emerald: #10b981;
+    --theme-emerald-glow: rgba(16, 185, 129, 0.15);
+    --theme-emerald-border: rgba(16, 185, 129, 0.3);
+
+    --theme-rose: #f43f5e;
+    --theme-rose-glow: rgba(244, 63, 94, 0.15);
+    --theme-rose-border: rgba(244, 63, 94, 0.3);
+
+    --theme-blue: #0ea5e9;
+    --theme-blue-glow: rgba(14, 165, 233, 0.15);
+    --theme-blue-border: rgba(14, 165, 233, 0.3);
+
+    --theme-parent: #3b82f6;
+    --theme-parent-glow: rgba(59, 130, 246, 0.15);
+    --theme-parent-border: rgba(59, 130, 246, 0.3);
+
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.2);
+  }
+}
+
+/* 🌙 Strict dark theme manual selector override */
+[data-theme="dark"] {
+  --bg-dark: #090a0f;
+  --bg-dark-refract: rgba(13, 15, 24, 0.6);
+  --card-dark: rgba(20, 24, 38, 0.6);
+  --card-border: rgba(255, 255, 255, 0.07);
+  --card-border-glow: rgba(255, 255, 255, 0.15);
+  
+  --text-white: #ffffff;
+  --text-muted: #8e95ad;
+  --text-dark: #12131a;
+
+  --bg-gradient-1: rgba(139, 92, 246, 0.08);
+  --bg-gradient-2: rgba(14, 165, 233, 0.08);
+  --bg-gradient-3: rgba(16, 185, 129, 0.04);
+
+  --btn-secondary-bg: rgba(255, 255, 255, 0.05);
+  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.1);
+
+  --theme-violet: #8b5cf6;
+  --theme-violet-glow: rgba(139, 92, 246, 0.15);
+  --theme-violet-border: rgba(139, 92, 246, 0.3);
+
+  --theme-amber: #f59e0b;
+  --theme-amber-glow: rgba(245, 158, 11, 0.15);
+  --theme-amber-border: rgba(245, 158, 11, 0.3);
+
+  --theme-emerald: #10b981;
+  --theme-emerald-glow: rgba(16, 185, 129, 0.15);
+  --theme-emerald-border: rgba(16, 185, 129, 0.3);
+
+  --theme-rose: #f43f5e;
+  --theme-rose-glow: rgba(244, 63, 94, 0.15);
+  --theme-rose-border: rgba(244, 63, 94, 0.3);
+
+  --theme-blue: #0ea5e9;
+  --theme-blue-glow: rgba(14, 165, 233, 0.15);
+  --theme-blue-border: rgba(14, 165, 233, 0.3);
+
+  --theme-parent: #3b82f6;
+  --theme-parent-glow: rgba(59, 130, 246, 0.15);
+  --theme-parent-border: rgba(59, 130, 246, 0.3);
+
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.2);
 }
 
 /* ==========================================
@@ -74,9 +281,9 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
+    radial-gradient(circle at 10% 20%, var(--bg-gradient-1) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, var(--bg-gradient-2) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, var(--bg-gradient-3) 0%, transparent 50%);
   background-attachment: fixed;
 }
 
@@ -221,13 +428,13 @@ button, input, textarea, select {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--btn-secondary-bg);
   border: 1px solid var(--card-border);
   color: var(--text-white);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--btn-secondary-bg-hover);
   border-color: var(--card-border-glow);
   transform: translateY(-1px);
 }
@@ -290,7 +497,7 @@ button, input, textarea, select {
 }
 
 .glass-select option {
-  background: #0d0f17;
+  background: var(--bg-dark);
   color: var(--text-white);
 }
 
@@ -304,7 +511,7 @@ button, input, textarea, select {
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--card-border);
 }
 
 .brand {
