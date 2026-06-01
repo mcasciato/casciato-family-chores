@@ -11,11 +11,11 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
   const [pendingRedemptions, setPendingRedemptions] = useState([]);
   const [choresList, setChoresList] = useState([]);
   const [rewardsList, setRewardsList] = useState([]);
-  
+
   // Modals & Forms State
   const [isChoreModalOpen, setIsChoreModalOpen] = useState(false);
   const [choreForm, setChoreForm] = useState({ id: null, title: '', description: '', points: 10, schedule_type: 'daily', schedule_days: '', assigned_to: '' });
-  
+
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
   const [rewardForm, setRewardForm] = useState({ id: null, title: '', description: '', points_cost: 50 });
 
@@ -102,7 +102,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
     try {
       const res = await fetch(`/api/completions/${completionId}/reject`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'x-parent-token': parentToken
         },
@@ -175,7 +175,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
       if (id) {
         res = await fetch(`/api/chores/${id}`, {
           method: 'PUT',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'x-parent-token': parentToken
           },
@@ -184,7 +184,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
       } else {
         res = await fetch('/api/chores', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'x-parent-token': parentToken
           },
@@ -204,7 +204,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
   const handleDeleteChore = async (id) => {
     if (!confirm('Are you sure you want to delete this chore?')) return;
     try {
-      const res = await fetch(`/api/chores/${id}`, { 
+      const res = await fetch(`/api/chores/${id}`, {
         method: 'DELETE',
         headers: { 'x-parent-token': parentToken }
       });
@@ -245,7 +245,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
       if (id) {
         res = await fetch(`/api/rewards/${id}`, {
           method: 'PUT',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'x-parent-token': parentToken
           },
@@ -254,7 +254,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
       } else {
         res = await fetch('/api/rewards', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'x-parent-token': parentToken
           },
@@ -274,7 +274,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
   const handleDeleteReward = async (id) => {
     if (!confirm('Are you sure you want to delete this reward?')) return;
     try {
-      const res = await fetch(`/api/rewards/${id}`, { 
+      const res = await fetch(`/api/rewards/${id}`, {
         method: 'DELETE',
         headers: { 'x-parent-token': parentToken }
       });
@@ -301,7 +301,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
     try {
       const res = await fetch(`/api/kids/${kidId}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'x-parent-token': parentToken
         },
@@ -353,7 +353,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
     try {
       const res = await fetch(`/api/kids/${id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'x-parent-token': parentToken
         },
@@ -390,7 +390,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Parents command panel to verify quests and dispense loot.</p>
             </div>
           </div>
-          
+
           <button className="btn btn-secondary" onClick={onBackToProfiles}>
             Exit Parent Mode
           </button>
@@ -447,13 +447,13 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
       {/* ==================== 1. APPROVALS TAB ==================== */}
       {activeTab === 'approvals' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
+
           {/* Chore Approvals Queue */}
           <div className="glass-card" style={{ padding: '1.75rem' }}>
             <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               ⚔️ Quest Verifications ({pendingCompletions.length})
             </h3>
-            
+
             {pendingCompletions.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', padding: '1rem 0' }}>
                 All clear! No completed quests are waiting for approval.
@@ -492,7 +492,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                       <div style={{ color: 'var(--theme-amber)', fontWeight: 700, fontSize: '1.1rem' }}>
                         🪙 +{completion.chore_points} Gold
                       </div>
-                      
+
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                           className="btn btn-secondary"
@@ -777,7 +777,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
               <button className="modal-close" onClick={() => setIsChoreModalOpen(false)}>✕</button>
             </div>
             <form onSubmit={handleChoreFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              
+
               <div className="input-group">
                 <span className="input-label">Quest Title (Chore Name)</span>
                 <input
@@ -822,7 +822,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                     value={choreForm.assigned_to}
                     onChange={(e) => setChoreForm({ ...choreForm, assigned_to: e.target.value })}
                   >
-                    <option value="">⚔️ Everyone (Public Quest)</option>
+                    <option value="">🌎 Everyone (Public Quest)</option>
                     {kids.map(kid => (
                       <option key={kid.id} value={kid.id}>{kid.name}</option>
                     ))}
@@ -881,7 +881,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
               <button className="modal-close" onClick={() => setIsRewardModalOpen(false)}>✕</button>
             </div>
             <form onSubmit={handleRewardFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              
+
               <div className="input-group">
                 <span className="input-label">Loot Name (Reward Title)</span>
                 <input
@@ -943,7 +943,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
               <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
                 Help the hero understand what needs to be improved in their work before they claim the gold coins.
               </p>
-              
+
               <div className="input-group">
                 <span className="input-label">Feedback Notes</span>
                 <textarea
