@@ -1,0 +1,393 @@
+import React, { useState, useEffect } from 'react';
+import { Sword, Trophy, Coins, Award, CheckCircle, Clock, AlertTriangle, ShoppingBag, LogOut, ArrowRight } from 'lucide-react';
+import confetti from 'canvas-confetti';
+
+export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints }) {
+  const [chores, setChores] = useState([]);
+  const [rewards, setRewards] = useState([]);
+  const [activeTab, setActiveTab] = useState('quests'); // 'quests' or 'loot'
+  const [loading, setLoading] = useState(true);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [dateStr, setDateStr] = useState('');
+
+  // Format today's date for standard visual and database tracking
+  useEffect(() => {
+    const today = new Date();
+    const pad = (n) => n.toString().padStart(2, '0');
+    setDateStr(`${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`);
+  }, []);
+
+  // Fetch chores and rewards
+  useEffect(() => {
+    if (dateStr) {
+      fetchData();
+    }
+  }, [dateStr]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // 1. Fetch chores for today
+      const choresRes = await fetch(`/api/chores/daily/${kid.id}/${dateStr}`);
+      const choresData = await choresRes.json();
+      setChores(choresData);
+
+      // 2. Fetch rewards
+      const rewardsRes = await fetch('/api/rewards');
+      const rewardsData = await rewardsRes.json();
+      setRewards(rewardsData);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteChore = async (choreId) => {
+    try {
+      const res = await fetch('/api/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chore_id: choreId,
+          kid_id: kid.id,
+          completed_date: dateStr
+        })
+      });
+
+      if (res.ok) {
+        // Trigger a tiny success confetti pop for kids when they submit a quest!
+        confetti({
+          particleCount: 50,
+          spread: 40,
+          origin: { y: 0.8 },
+          colors: ['#3b82f6', '#10b981', '#8b5cf6']
+        });
+
+        setSuccessMessage('Quest completed! Waiting for Guild Master approval.');
+        setTimeout(() => setSuccessMessage(''), 4000);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to complete quest.');
+      }
+    } catch (err) {
+      console.error('Error submitting completion:', err);
+    }
+  };
+
+  const handleRedeemReward = async (reward) => {
+    if (kid.points < reward.points_cost) return;
+
+    try {
+      const res = await fetch('/api/redemptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reward_id: reward.id,
+          kid_id: kid.id
+        })
+      });
+
+      if (res.ok) {
+        const redemption = await res.json();
+        
+        // Big confetti explosion for reward redemption!
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+
+        // Update the kid's points inside parent state
+        onUpdateKidPoints(kid.points - reward.points_cost);
+        
+        setSuccessMessage(`Success! You redeemed "${reward.title}". Ask your parents for your reward!`);
+        setTimeout(() => setSuccessMessage(''), 5000);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to redeem reward.');
+      }
+    } catch (err) {
+      console.error('Error redeeming reward:', err);
+    }
+  };
+
+  // Compute stats
+  const completedToday = chores.filter(c => c.completion_status === 'approved' || c.completion_status === 'pending').length;
+  const totalChores = chores.length;
+  const percentCompleted = totalChores > 0 ? Math.round((completedToday / totalChores) * 100) : 0;
+
+  return (
+    <div className={`theme-${kid.color_theme}`} style={{ width: '100%' }}>
+      {/* Top Banner Profile Summary */}
+      <div className="glass-panel active-theme-card" style={{ marginBottom: '2.5rem', padding: '1.75rem 2rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '2.75rem',
+              border: '2px solid var(--accent)'
+            }}>
+              {kid.avatar}
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Welcome, {kid.name}!</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.15rem' }}>
+                Level: {Math.floor(kid.points / 100) + 1} Hero
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div className="glass-card" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Coins size={28} style={{ color: 'var(--theme-amber)' }} />
+              <div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800 }}>{kid.points}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Gold Coins</div>
+              </div>
+            </div>
+
+            <button className="btn btn-secondary" onClick={onBackToProfiles}>
+              <LogOut size={16} /> Switch Profile
+            </button>
+          </div>
+        </div>
+
+        {/* Progress Tracker bar */}
+        {totalChores > 0 && (
+          <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: 600 }}>
+              <span style={{ color: 'var(--text-muted)' }}>TODAY'S CAMPAIGN PROGRESS</span>
+              <span style={{ color: 'var(--accent)' }}>{completedToday}/{totalChores} Quests Submitting ({percentCompleted}%)</span>
+            </div>
+            <div className="progress-container">
+              <div className="progress-bar" style={{ width: `${percentCompleted}%`, backgroundColor: 'var(--accent)' }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {successMessage && (
+        <div className="glass-card" style={{
+          background: 'rgba(16, 185, 129, 0.1)',
+          borderColor: 'var(--theme-emerald)',
+          color: 'var(--text-white)',
+          padding: '1rem',
+          borderRadius: '12px',
+          marginBottom: '2rem',
+          textAlign: 'center',
+          fontWeight: 500,
+          animation: 'fadeIn 0.3s'
+        }}>
+          ✨ {successMessage}
+        </div>
+      )}
+
+      {/* Tabs Menu */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <button
+          className={`btn ${activeTab === 'quests' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('quests')}
+          style={{ flex: 1, padding: '1rem' }}
+        >
+          <Sword size={20} /> Active Quests ({chores.length})
+        </button>
+        <button
+          className={`btn ${activeTab === 'loot' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('loot')}
+          style={{ flex: 1, padding: '1rem' }}
+        >
+          <ShoppingBag size={20} /> Loot Shop (Rewards)
+        </button>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid rgba(255,255,255,0.1)',
+            borderTopColor: 'var(--accent)',
+            borderRadius: '50%',
+            animation: 'scaleIn 1s infinite linear',
+            margin: '0 auto 1rem auto'
+          }} />
+          <p style={{ color: 'var(--text-muted)' }}>Loading active campaign data...</p>
+        </div>
+      ) : activeTab === 'quests' ? (
+        /* ==================== QUESTS TAB ==================== */
+        <div>
+          {chores.length === 0 ? (
+            <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+              <Trophy size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>All Quests Clear!</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>No active chores are scheduled for you today. Take a well-deserved rest!</p>
+            </div>
+          ) : (
+            <div className="dashboard-grid">
+              {chores.map((chore) => {
+                const isPending = chore.completion_status === 'pending';
+                const isApproved = chore.completion_status === 'approved';
+                const isRejected = chore.completion_status === 'rejected';
+
+                let cardClass = 'glass-card';
+                if (isApproved) cardClass += ' active-theme-card';
+
+                return (
+                  <div key={chore.id} className={cardClass} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                        <span style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--card-border)',
+                          borderRadius: '8px',
+                          padding: '0.25rem 0.5rem',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          textTransform: 'uppercase',
+                          fontWeight: 600
+                        }}>
+                          {chore.schedule_type === 'alternate' ? 'every other day' : chore.schedule_type}
+                        </span>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--theme-amber)', fontWeight: 700, fontSize: '1.1rem' }}>
+                          🪙 {chore.points}
+                        </div>
+                      </div>
+
+                      <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: isApproved ? 'var(--accent)' : 'inherit' }}>
+                        {chore.title}
+                      </h3>
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        {chore.description}
+                      </p>
+                    </div>
+
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      {isApproved && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--theme-emerald)', fontWeight: 600, fontSize: '0.9rem' }}>
+                          <CheckCircle size={18} /> Quest Complete & Approved!
+                        </div>
+                      )}
+
+                      {isPending && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--theme-amber)', fontWeight: 600, fontSize: '0.9rem' }}>
+                          <Clock size={18} className="logo-icon" /> Under Review by Parents
+                        </div>
+                      )}
+
+                      {isRejected && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--theme-rose)', fontWeight: 600, fontSize: '0.9rem' }}>
+                            <AlertTriangle size={18} /> Revision Needed
+                          </div>
+                          {chore.completion_feedback && (
+                            <p style={{
+                              background: 'rgba(244,63,94,0.05)',
+                              borderLeft: '3px solid var(--theme-rose)',
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.85rem',
+                              color: 'var(--text-muted)',
+                              borderRadius: '4px'
+                            }}>
+                              &ldquo;{chore.completion_feedback}&rdquo;
+                            </p>
+                          )}
+                          <button className="btn btn-primary" style={{ width: '100%', gap: '0.25rem' }} onClick={() => handleCompleteChore(chore.id)}>
+                            Resubmit Quest <ArrowRight size={16} />
+                          </button>
+                        </div>
+                      )}
+
+                      {chore.completion_status === 'uncompleted' && (
+                        <button className="btn btn-primary" style={{ width: '100%', gap: '0.25rem' }} onClick={() => handleCompleteChore(chore.id)}>
+                          Complete Quest <ArrowRight size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ==================== LOOT SHOP TAB ==================== */
+        <div>
+          {rewards.length === 0 ? (
+            <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+              <ShoppingBag size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>Loot Shop Empty</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>There are currently no rewards stocked. Remind parents to add some loot!</p>
+            </div>
+          ) : (
+            <div className="dashboard-grid">
+              {rewards.map((reward) => {
+                const canAfford = kid.points >= reward.points_cost;
+
+                return (
+                  <div key={reward.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                        <span style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--card-border)',
+                          borderRadius: '8px',
+                          padding: '0.25rem 0.5rem',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          textTransform: 'uppercase',
+                          fontWeight: 600
+                        }}>
+                          Reward
+                        </span>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--theme-amber)', fontWeight: 700, fontSize: '1.1rem' }}>
+                          🪙 {reward.points_cost}
+                        </div>
+                      </div>
+
+                      <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+                        {reward.title}
+                      </h3>
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        {reward.description}
+                      </p>
+                    </div>
+
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      <button
+                        className="btn btn-primary"
+                        style={{
+                          width: '100%',
+                          gap: '0.5rem',
+                          background: canAfford ? 'linear-gradient(135deg, var(--theme-amber) 0%, #fbbf24 100%)' : 'rgba(255, 255, 255, 0.03)',
+                          color: canAfford ? 'var(--text-dark)' : 'var(--text-muted)',
+                          cursor: canAfford ? 'pointer' : 'not-allowed',
+                          boxShadow: canAfford ? '0 4px 12px rgba(245,158,11,0.2)' : 'none'
+                        }}
+                        disabled={!canAfford}
+                        onClick={() => handleRedeemReward(reward)}
+                      >
+                        <Award size={18} />
+                        {canAfford ? 'Claim Reward' : 'Need More Gold'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

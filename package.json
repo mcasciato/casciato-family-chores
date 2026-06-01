@@ -1,0 +1,30 @@
+{
+  "name": "chore-quest",
+  "version": "1.0.0",
+  "description": "Premium Kid's Chore Tracker for Raspberry Pi",
+  "main": "server.js",
+  "scripts": {
+    "setup": "npm install && cd client && npm install",
+    "build": "cd client && npm run build",
+    "start": "node server.js",
+    "dev": "node server.js & cd client && npm run dev"
+  },
+  "keywords": [
+    "chores",
+    "kids",
+    "raspberry-pi",
+    "express",
+    "react",
+    "sqlite"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.10"
+  }
+}
