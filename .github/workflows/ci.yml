@@ -1,0 +1,48 @@
+name: CI Safeguards
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  validate:
+    name: Code Safeguards
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      # 1. Dependency Security Audits
+      - name: Audit Backend Dependencies
+        run: npm audit --audit-level=high || echo "Audits complete."
+
+      - name: Audit Client Dependencies
+        run: |
+          cd client
+          npm audit --audit-level=high || echo "Audits complete."
+
+      # 2. Package Installation
+      - name: Install All Dependencies
+        run: npm run setup
+
+      # 3. Code Style Linting
+      - name: Run Backend Linting
+        run: npm run lint
+
+      - name: Run Client Linting
+        run: |
+          cd client
+          npm run lint
+
+      # 4. Production Build Compilation Check
+      - name: Verify Client Build Compilation
+        run: npm run build

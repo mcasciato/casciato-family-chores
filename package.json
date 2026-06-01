@@ -7,7 +7,8 @@
     "setup": "npm install && cd client && npm install",
     "build": "cd client && npm run build",
     "start": "node server.js",
-    "dev": "node server.js & cd client && npm run dev"
+    "dev": "node server.js & cd client && npm run dev",
+    "lint": "eslint . --ignore-pattern client"
   },
   "keywords": [
     "chores",
@@ -25,6 +26,8 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "@flydotio/dockerfile": "^0.7.10"
+    "@flydotio/dockerfile": "^0.7.10",
+    "eslint": "^8.57.0",
+    "globals": "^15.3.0"
   }
 }
