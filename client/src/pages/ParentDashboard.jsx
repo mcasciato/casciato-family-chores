@@ -619,7 +619,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                       {chore.description || 'No description provided.'}
                     </p>
                     <span style={{ fontSize: '0.8rem', color: 'var(--accent, var(--theme-violet))', fontWeight: 500, marginTop: '0.25rem', display: 'inline-block' }}>
-                      Assigned To: {chore.assigned_to_name ? `${chore.assigned_to_avatar} ${chore.assigned_to_name}` : '⚔️ Everyone'}
+                      Assigned To: {chore.assigned_to_name ? `${chore.assigned_to_avatar} ${chore.assigned_to_name}` : '🌎 Everyone'}
                     </span>
                   </div>
 

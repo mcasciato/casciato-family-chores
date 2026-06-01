@@ -176,8 +176,20 @@ async function seedDatabase() {
   const lucyPinData = hashPin('2222');
 
   const kids = [
-    { name: 'Mac', avatar: '🚀', color_theme: 'blue', pin_hash: macPinData.hash, pin_salt: macPinData.salt },
-    { name: 'Lucy', avatar: '🦄', color_theme: 'rose', pin_hash: lucyPinData.hash, pin_salt: lucyPinData.salt }
+    {
+      name: 'Mac',
+      avatar: '🚀',
+      color_theme: 'blue',
+      pin_hash: macPinData.hash,
+      pin_salt: macPinData.salt
+    },
+    {
+      name: 'Lucy',
+      avatar: '🦄',
+      color_theme: 'rose',
+      pin_hash: lucyPinData.hash,
+      pin_salt: lucyPinData.salt
+    }
   ];
 
   for (const kid of kids) {
@@ -194,15 +206,78 @@ async function seedDatabase() {
 
   // Seed Chores`
   const chores = [
-    { title: 'Put toys away', description: 'Put toys away at before bed.', points: 30, schedule_type: 'daily', schedule_days: null, assigned_to: macId },
-    { title: 'Plug in tablet', description: 'Plug in tablet before bed.', points: 5, schedule_type: 'daily', schedule_days: null, assigned_to: lucyId },
-    { title: 'Empty the dishwasher', description: 'Empty the dishwasher after dinner.', points: 25, schedule_type: 'daily', schedule_days: null, assigned_to: null },
-    { title: 'Fold and put away laundry', description: 'Fold your clean laundry basket and put it in drawers.', points: 30, schedule_type: 'weekly', schedule_days: null, assigned_to: lucyId },
-    { title: 'Fold towels', description: 'Fold all towels.', points: 30, schedule_type: 'weekly', schedule_days: null, assigned_to: macId },
-    { title: 'Wipe eating areas after dinner', description: 'Wipe eating areas after dinner.', points: 15, schedule_type: 'daily', schedule_days: null, assigned_to: macId },
-    { title: 'Water porch flowers', description: 'Water all the planters.', points: 20, schedule_type: 'alternate', schedule_days: '1', assigned_to: lucyId },
-    { title: 'Vacuum the kitchen', description: 'Vacuum the kitchen floor thoroughly.', points: 20, schedule_type: 'alternate', schedule_days: null, assigned_to: lucyId },
-    { title: 'Make sandwich at lunch', description: 'Practice and make your own PB & J for lunch.', points: 20, schedule_type: 'daily', schedule_days: null, assigned_to: lucyId },
+    {
+      title: 'Put toys away',
+      description: 'Put toys away before bed.',
+      points: 30,
+      schedule_type: 'daily',
+      schedule_days: null,
+      assigned_to: macId
+    },
+    {
+      title: 'Plug in tablet',
+      description: 'Plug in tablet before bed.',
+      points: 5,
+      schedule_type: 'daily',
+      schedule_days: null,
+      assigned_to: lucyId
+    },
+    {
+      title: 'Empty the dishwasher as needed',
+      description: 'Empty the dishwasher as needed',
+      points: 25,
+      schedule_type: 'daily',
+      schedule_days: null,
+      assigned_to: null
+    },
+    {
+      title: 'Fold and put away laundry',
+      description: 'Fold your clean laundry basket and put it in drawers.',
+      points: 30,
+      schedule_type: 'weekly',
+      schedule_days: null,
+      assigned_to: lucyId
+    },
+    {
+      title: 'Fold towels',
+      description: 'Fold all towels.',
+      points: 30,
+      schedule_type: 'weekly',
+      schedule_days: null,
+      assigned_to: macId
+    },
+    {
+      title: 'Wipe eating areas after dinner',
+      description: 'Wipe eating areas after dinner.',
+      points: 15,
+      schedule_type: 'daily',
+      schedule_days: null,
+      assigned_to: macId
+    },
+    {
+      title: 'Water porch flowers',
+      description: 'Water all the planters.',
+      points: 20,
+      schedule_type: 'alternate',
+      schedule_days: '1',
+      assigned_to: lucyId
+    },
+    {
+      title: 'Vacuum the kitchen',
+      description: 'Vacuum the kitchen floor thoroughly.',
+      points: 20,
+      schedule_type: 'alternate',
+      schedule_days: null,
+      assigned_to: lucyId
+    },
+    {
+      title: 'Make sandwich at lunch',
+      description: 'Practice and make your own PB & J for lunch.',
+      points: 20,
+      schedule_type: 'daily',
+      schedule_days: null,
+      assigned_to: lucyId
+    },
   ];
 
   for (const chore of chores) {
