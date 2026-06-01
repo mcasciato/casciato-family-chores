@@ -2,13 +2,41 @@ import React, { useState, useEffect } from 'react';
 import ProfileSelect from './pages/ProfileSelect.jsx';
 import KidDashboard from './pages/KidDashboard.jsx';
 import ParentDashboard from './pages/ParentDashboard.jsx';
-import { ShieldCheck, Award } from 'lucide-react';
+import { ShieldCheck, Sun, Moon } from 'lucide-react';
 
 export default function App() {
   const [view, setView] = useState('profile_select'); // 'profile_select', 'kid_dashboard', 'parent_dashboard'
   const [kids, setKids] = useState([]);
   const [currentKid, setCurrentKid] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Dynamic Light/Dark Theme management
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) return savedTheme;
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return systemPrefersDark ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e) => {
+      if (!localStorage.getItem('theme')) {
+        setTheme(e.matches ? 'dark' : 'light');
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
 
   // Fetch kids list on initial mount
   useEffect(() => {
@@ -88,7 +116,27 @@ export default function App() {
           <h1>ChoreQuest</h1>
         </div>
 
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button 
+            onClick={toggleTheme} 
+            className="btn btn-secondary" 
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            style={{
+              padding: '0.6rem',
+              borderRadius: '9999px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              border: '1px solid var(--card-border)',
+              background: 'var(--btn-secondary-bg)',
+              color: 'var(--text-white)'
+            }}
+          >
+            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+
           {view === 'kid_dashboard' && currentKid && (
             <div className={`user-badge theme-${currentKid.color_theme}`} onClick={handleBackToProfiles}>
               <span className="user-avatar">{currentKid.avatar}</span>
@@ -155,7 +203,7 @@ export default function App() {
       <footer style={{
         marginTop: '4rem',
         paddingTop: '1.5rem',
-        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+        borderTop: '1px solid var(--card-border)',
         textAlign: 'center',
         fontSize: '0.8rem',
         color: 'var(--text-muted)'
