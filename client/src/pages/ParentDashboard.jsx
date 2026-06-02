@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Check, X, Plus, Trash2, Edit3, UserPlus, Coins, Sword, Gift, Clock, Sparkles } from 'lucide-react';
+import {
+  ShieldCheck,
+  Check,
+  X,
+  Plus,
+  Trash2,
+  Edit3,
+  UserPlus,
+  Coins,
+  Sword,
+  Gift,
+  Clock,
+  Sparkles
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const avatarsList = ['🧙‍♂️', '🧝‍♀️', '🦁', '🐱', '🦄', '🦖', '🚀', '🐼', '🦊', '🎨', '⚽️', '🎸'];
@@ -14,10 +27,23 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
 
   // Modals & Forms State
   const [isChoreModalOpen, setIsChoreModalOpen] = useState(false);
-  const [choreForm, setChoreForm] = useState({ id: null, title: '', description: '', points: 10, schedule_type: 'daily', schedule_days: '', assigned_to: '' });
+  const [choreForm, setChoreForm] = useState({
+    id: null,
+    title: '',
+    description: '',
+    points: 10,
+    schedule_type: 'daily',
+    schedule_days: '',
+    assigned_to: ''
+  });
 
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
-  const [rewardForm, setRewardForm] = useState({ id: null, title: '', description: '', points_cost: 50 });
+  const [rewardForm, setRewardForm] = useState({
+    id: null,
+    title: '',
+    description: '',
+    points_cost: 50
+  });
 
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
   const [adjustmentForm, setAdjustmentForm] = useState({ kidId: '', kidName: '', amount: 0 });
@@ -25,7 +51,13 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
   const [rejectionFeedback, setRejectionFeedback] = useState({ completionId: null, feedback: '' });
 
   const [isKidEditModalOpen, setIsKidEditModalOpen] = useState(false);
-  const [kidEditForm, setKidEditForm] = useState({ id: '', name: '', avatar: '', color_theme: '', pin: '' });
+  const [kidEditForm, setKidEditForm] = useState({
+    id: '',
+    name: '',
+    avatar: '',
+    color_theme: '',
+    pin: ''
+  });
   const [editError, setEditError] = useState('');
 
   // Load backend queues and resources
@@ -140,7 +172,15 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
 
   // Chore CRUD Handlers
   const handleOpenChoreCreate = () => {
-    setChoreForm({ id: null, title: '', description: '', points: 15, schedule_type: 'daily', schedule_days: '', assigned_to: '' });
+    setChoreForm({
+      id: null,
+      title: '',
+      description: '',
+      points: 15,
+      schedule_type: 'daily',
+      schedule_days: '',
+      assigned_to: ''
+    });
     setIsChoreModalOpen(true);
   };
 
@@ -293,7 +333,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
   const handleAdjustmentSubmit = async (e) => {
     e.preventDefault();
     const { kidId, amount } = adjustmentForm;
-    const kid = kids.find(k => k.id === kidId);
+    const kid = kids.find((k) => k.id === kidId);
     if (!kid) return;
 
     const newPoints = Math.max(0, kid.points + Number(amount));
@@ -381,13 +421,26 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
   return (
     <div className="theme-parent" style={{ width: '100%' }}>
       {/* Top command panel banner */}
-      <div className="glass-panel active-theme-card" style={{ marginBottom: '2.5rem', padding: '1.5rem 2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="glass-panel active-theme-card"
+        style={{ marginBottom: '2.5rem', padding: '1.5rem 2rem' }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <ShieldCheck size={36} style={{ color: 'var(--theme-parent)' }} />
             <div>
               <h2 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Guild Master Control</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Parents command panel to verify quests and dispense loot.</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                Parents command panel to verify quests and dispense loot.
+              </p>
             </div>
           </div>
 
@@ -405,15 +458,17 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
           style={{ flex: 1, minWidth: '150px' }}
         >
           <Clock size={16} /> Approval Inbox
-          {(pendingCompletions.length + pendingRedemptions.length) > 0 && (
-            <span style={{
-              background: 'var(--theme-rose)',
-              color: '#ffffff',
-              borderRadius: '99px',
-              padding: '0.1rem 0.4rem',
-              fontSize: '0.7rem',
-              fontWeight: 700
-            }}>
+          {pendingCompletions.length + pendingRedemptions.length > 0 && (
+            <span
+              style={{
+                background: 'var(--theme-rose)',
+                color: '#ffffff',
+                borderRadius: '99px',
+                padding: '0.1rem 0.4rem',
+                fontSize: '0.7rem',
+                fontWeight: 700
+              }}
+            >
               {pendingCompletions.length + pendingRedemptions.length}
             </span>
           )}
@@ -447,10 +502,17 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
       {/* ==================== 1. APPROVALS TAB ==================== */}
       {activeTab === 'approvals' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-
           {/* Chore Approvals Queue */}
           <div className="glass-card" style={{ padding: '1.75rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3
+              style={{
+                fontSize: '1.25rem',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
               ⚔️ Quest Verifications ({pendingCompletions.length})
             </h3>
 
@@ -481,30 +543,60 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                           <strong style={{ fontSize: '1.05rem' }}>{completion.kid_name}</strong>
                           <span className={`badge badge-pending`}>Pending</span>
                         </div>
-                        <h4 style={{ fontSize: '1.1rem', margin: '0.2rem 0', fontWeight: 600 }}>{completion.chore_title}</h4>
+                        <h4 style={{ fontSize: '1.1rem', margin: '0.2rem 0', fontWeight: 600 }}>
+                          {completion.chore_title}
+                        </h4>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          Submitted: {new Date(completion.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({completion.completed_date})
+                          Submitted:{' '}
+                          {new Date(completion.completed_at).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}{' '}
+                          ({completion.completed_date})
                         </span>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-                      <div style={{ color: 'var(--theme-amber)', fontWeight: 700, fontSize: '1.1rem' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1.25rem',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <div
+                        style={{ color: 'var(--theme-amber)', fontWeight: 700, fontSize: '1.1rem' }}
+                      >
                         🪙 +{completion.chore_points} Gold
                       </div>
 
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                           className="btn btn-secondary"
-                          style={{ padding: '0.5rem 0.75rem', borderColor: 'var(--theme-rose-border)', color: 'var(--theme-rose)' }}
+                          style={{
+                            padding: '0.5rem 0.75rem',
+                            borderColor: 'var(--theme-rose-border)',
+                            color: 'var(--theme-rose)'
+                          }}
                           onClick={() => handleOpenRejection(completion.id)}
                         >
                           <X size={16} /> Reject
                         </button>
                         <button
                           className="btn btn-primary"
-                          style={{ padding: '0.5rem 0.75rem', background: 'var(--theme-emerald)', color: 'var(--text-dark)' }}
-                          onClick={() => handleApproveChore(completion.id, completion.kid_name, completion.chore_points)}
+                          style={{
+                            padding: '0.5rem 0.75rem',
+                            background: 'var(--theme-emerald)',
+                            color: 'var(--text-dark)'
+                          }}
+                          onClick={() =>
+                            handleApproveChore(
+                              completion.id,
+                              completion.kid_name,
+                              completion.chore_points
+                            )
+                          }
                         >
                           <Check size={16} /> Approve
                         </button>
@@ -518,7 +610,15 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
 
           {/* Reward Redemptions Queue */}
           <div className="glass-card" style={{ padding: '1.75rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3
+              style={{
+                fontSize: '1.25rem',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
               🎁 Loot Redemptions ({pendingRedemptions.length})
             </h3>
 
@@ -549,21 +649,40 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                           <strong style={{ fontSize: '1.05rem' }}>{redemption.kid_name}</strong>
                           <span className={`badge badge-approved`}>Purchased</span>
                         </div>
-                        <h4 style={{ fontSize: '1.1rem', margin: '0.2rem 0', fontWeight: 600 }}>{redemption.reward_title}</h4>
+                        <h4 style={{ fontSize: '1.1rem', margin: '0.2rem 0', fontWeight: 600 }}>
+                          {redemption.reward_title}
+                        </h4>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          Redeemed: {new Date(redemption.redeemed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          Redeemed:{' '}
+                          {new Date(redemption.redeemed_at).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </span>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-                      <div style={{ color: 'var(--theme-amber)', fontWeight: 700, fontSize: '1.1rem' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1.25rem',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <div
+                        style={{ color: 'var(--theme-amber)', fontWeight: 700, fontSize: '1.1rem' }}
+                      >
                         🪙 -{redemption.reward_cost} Gold (Deducted)
                       </div>
 
                       <button
                         className="btn btn-primary"
-                        style={{ padding: '0.5rem 1rem', background: 'var(--theme-parent)', color: 'var(--text-white)' }}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: 'var(--theme-parent)',
+                          color: 'var(--text-white)'
+                        }}
                         onClick={() => handleFulfillRedemption(redemption.id)}
                       >
                         <Check size={16} /> Deliver Loot
@@ -574,16 +693,26 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
               </div>
             )}
           </div>
-
         </div>
       )}
 
       {/* ==================== 2. CHORES TAB ==================== */}
       {activeTab === 'chores' && (
         <div className="glass-card" style={{ padding: '1.75rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}
+          >
             <h3 style={{ fontSize: '1.25rem' }}>Active Quest Board (Chores)</h3>
-            <button className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} onClick={handleOpenChoreCreate}>
+            <button
+              className="btn btn-primary"
+              style={{ padding: '0.5rem 1rem' }}
+              onClick={handleOpenChoreCreate}
+            >
               <Plus size={16} /> Create Quest
             </button>
           </div>
@@ -611,15 +740,44 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                   <div>
                     <h4 style={{ fontSize: '1.1rem', fontWeight: 600 }}>
                       {chore.title}{' '}
-                      <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', textTransform: 'uppercase', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-                        {chore.schedule_type === 'alternate' ? 'every other day' : chore.schedule_type}
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '0.15rem 0.5rem',
+                          background: 'rgba(255,255,255,0.05)',
+                          borderRadius: '4px',
+                          textTransform: 'uppercase',
+                          color: 'var(--text-muted)',
+                          marginLeft: '0.5rem'
+                        }}
+                      >
+                        {chore.schedule_type === 'alternate'
+                          ? 'every other day'
+                          : chore.schedule_type}
                       </span>
                     </h4>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    <p
+                      style={{
+                        fontSize: '0.85rem',
+                        color: 'var(--text-muted)',
+                        marginTop: '0.2rem'
+                      }}
+                    >
                       {chore.description || 'No description provided.'}
                     </p>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--accent, var(--theme-violet))', fontWeight: 500, marginTop: '0.25rem', display: 'inline-block' }}>
-                      Assigned To: {chore.assigned_to_name ? `${chore.assigned_to_avatar} ${chore.assigned_to_name}` : '🌎 Everyone'}
+                    <span
+                      style={{
+                        fontSize: '0.8rem',
+                        color: 'var(--accent, var(--theme-violet))',
+                        fontWeight: 500,
+                        marginTop: '0.25rem',
+                        display: 'inline-block'
+                      }}
+                    >
+                      Assigned To:{' '}
+                      {chore.assigned_to_name
+                        ? `${chore.assigned_to_avatar} ${chore.assigned_to_name}`
+                        : '🌎 Everyone'}
                     </span>
                   </div>
 
@@ -629,10 +787,18 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={() => handleOpenChoreEdit(chore)}>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '0.4rem' }}
+                        onClick={() => handleOpenChoreEdit(chore)}
+                      >
                         <Edit3 size={16} />
                       </button>
-                      <button className="btn btn-secondary" style={{ padding: '0.4rem', color: 'var(--theme-rose)' }} onClick={() => handleDeleteChore(chore.id)}>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '0.4rem', color: 'var(--theme-rose)' }}
+                        onClick={() => handleDeleteChore(chore.id)}
+                      >
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -647,9 +813,20 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
       {/* ==================== 3. REWARDS TAB ==================== */}
       {activeTab === 'rewards' && (
         <div className="glass-card" style={{ padding: '1.75rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}
+          >
             <h3 style={{ fontSize: '1.25rem' }}>Loot Vault Stock (Rewards)</h3>
-            <button className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} onClick={handleOpenRewardCreate}>
+            <button
+              className="btn btn-primary"
+              style={{ padding: '0.5rem 1rem' }}
+              onClick={handleOpenRewardCreate}
+            >
               <Plus size={16} /> Add Loot Reward
             </button>
           </div>
@@ -676,7 +853,13 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                 >
                   <div>
                     <h4 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{reward.title}</h4>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    <p
+                      style={{
+                        fontSize: '0.85rem',
+                        color: 'var(--text-muted)',
+                        marginTop: '0.2rem'
+                      }}
+                    >
                       {reward.description || 'No description provided.'}
                     </p>
                   </div>
@@ -687,10 +870,18 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={() => handleOpenRewardEdit(reward)}>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '0.4rem' }}
+                        onClick={() => handleOpenRewardEdit(reward)}
+                      >
                         <Edit3 size={16} />
                       </button>
-                      <button className="btn btn-secondary" style={{ padding: '0.4rem', color: 'var(--theme-rose)' }} onClick={() => handleDeleteReward(reward.id)}>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '0.4rem', color: 'var(--theme-rose)' }}
+                        onClick={() => handleDeleteReward(reward.id)}
+                      >
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -705,7 +896,9 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
       {/* ==================== 4. KIDS TAB ==================== */}
       {activeTab === 'kids' && (
         <div className="glass-card" style={{ padding: '1.75rem' }}>
-          <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Factions & Heroes (Children Profiles)</h3>
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>
+            Factions & Heroes (Children Profiles)
+          </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {kids.map((kid) => (
@@ -723,17 +916,19 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '2.2rem',
-                    border: '2px solid var(--accent)'
-                  }}>
+                  <div
+                    style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '50%',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '2.2rem',
+                      border: '2px solid var(--accent)'
+                    }}
+                  >
                     {kid.avatar}
                   </div>
                   <div>
@@ -744,18 +939,42 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-                  <div className="glass-card" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.03)' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}
+                >
+                  <div
+                    className="glass-card"
+                    style={{
+                      padding: '0.5rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      background: 'rgba(255,255,255,0.03)'
+                    }}
+                  >
                     <Coins size={18} style={{ color: 'var(--theme-amber)' }} />
                     <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{kid.points}</span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gold</span>
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }} onClick={() => handleOpenKidEdit(kid)}>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: '0.5rem 1rem' }}
+                      onClick={() => handleOpenKidEdit(kid)}
+                    >
                       <Edit3 size={16} /> Edit Profile
                     </button>
-                    <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }} onClick={() => handleOpenAdjustment(kid)}>
+                    <button
+                      className="btn btn-primary"
+                      style={{
+                        padding: '0.5rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}
+                      onClick={() => handleOpenAdjustment(kid)}
+                    >
                       <Coins size={16} /> Adjust Gold
                     </button>
                   </div>
@@ -771,13 +990,19 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
         <div className="modal-overlay">
           <div className="glass-card modal-content theme-parent">
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3
+                style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
                 <Sword size={20} /> {choreForm.id ? 'Edit Quest Details' : 'Forge New Quest'}
               </h3>
-              <button className="modal-close" onClick={() => setIsChoreModalOpen(false)}>✕</button>
+              <button className="modal-close" onClick={() => setIsChoreModalOpen(false)}>
+                ✕
+              </button>
             </div>
-            <form onSubmit={handleChoreFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
+            <form
+              onSubmit={handleChoreFormSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
               <div className="input-group">
                 <span className="input-label">Quest Title (Chore Name)</span>
                 <input
@@ -823,8 +1048,10 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                     onChange={(e) => setChoreForm({ ...choreForm, assigned_to: e.target.value })}
                   >
                     <option value="">🌎 Everyone (Public Quest)</option>
-                    {kids.map(kid => (
-                      <option key={kid.id} value={kid.id}>{kid.name}</option>
+                    {kids.map((kid) => (
+                      <option key={kid.id} value={kid.id}>
+                        {kid.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -846,7 +1073,9 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
 
               {choreForm.schedule_type === 'custom' && (
                 <div className="input-group">
-                  <span className="input-label">Active Weekdays (Comma-Separated Indices: 0-Sun to 6-Sat)</span>
+                  <span className="input-label">
+                    Active Weekdays (Comma-Separated Indices: 0-Sun to 6-Sat)
+                  </span>
                   <input
                     type="text"
                     className="glass-input"
@@ -858,7 +1087,12 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
               )}
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsChoreModalOpen(false)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setIsChoreModalOpen(false)}
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
@@ -875,13 +1109,19 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
         <div className="modal-overlay">
           <div className="glass-card modal-content theme-parent">
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3
+                style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
                 <Gift size={20} /> {rewardForm.id ? 'Edit Loot Item' : 'Create New Loot Reward'}
               </h3>
-              <button className="modal-close" onClick={() => setIsRewardModalOpen(false)}>✕</button>
+              <button className="modal-close" onClick={() => setIsRewardModalOpen(false)}>
+                ✕
+              </button>
             </div>
-            <form onSubmit={handleRewardFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
+            <form
+              onSubmit={handleRewardFormSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
               <div className="input-group">
                 <span className="input-label">Loot Name (Reward Title)</span>
                 <input
@@ -919,7 +1159,12 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
               </div>
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsRewardModalOpen(false)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setIsRewardModalOpen(false)}
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
@@ -936,12 +1181,23 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
         <div className="modal-overlay">
           <div className="glass-card modal-content theme-parent">
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.4rem', color: 'var(--theme-rose)' }}>Revision Instructions</h3>
-              <button className="modal-close" onClick={() => setRejectionFeedback({ completionId: null, feedback: '' })}>✕</button>
+              <h3 style={{ fontSize: '1.4rem', color: 'var(--theme-rose)' }}>
+                Revision Instructions
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setRejectionFeedback({ completionId: null, feedback: '' })}
+              >
+                ✕
+              </button>
             </div>
-            <form onSubmit={handleRejectChore} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form
+              onSubmit={handleRejectChore}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
               <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
-                Help the hero understand what needs to be improved in their work before they claim the gold coins.
+                Help the hero understand what needs to be improved in their work before they claim
+                the gold coins.
               </p>
 
               <div className="input-group">
@@ -951,7 +1207,9 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                   rows={3}
                   placeholder="e.g. Please put away your shoes in the closet as well."
                   value={rejectionFeedback.feedback}
-                  onChange={(e) => setRejectionFeedback({ ...rejectionFeedback, feedback: e.target.value })}
+                  onChange={(e) =>
+                    setRejectionFeedback({ ...rejectionFeedback, feedback: e.target.value })
+                  }
                   required
                   autoFocus
                 />
@@ -980,14 +1238,18 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
         <div className="modal-overlay">
           <div className="glass-card modal-content theme-parent">
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.4rem' }}>
-                Adjust Gold Balance: {adjustmentForm.kidName}
-              </h3>
-              <button className="modal-close" onClick={() => setIsAdjustmentModalOpen(false)}>✕</button>
+              <h3 style={{ fontSize: '1.4rem' }}>Adjust Gold Balance: {adjustmentForm.kidName}</h3>
+              <button className="modal-close" onClick={() => setIsAdjustmentModalOpen(false)}>
+                ✕
+              </button>
             </div>
-            <form onSubmit={handleAdjustmentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form
+              onSubmit={handleAdjustmentSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
               <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
-                You can manually add or deduct gold coins for this hero's balance. Use positive numbers to reward, negative numbers to penalize.
+                You can manually add or deduct gold coins for this hero's balance. Use positive
+                numbers to reward, negative numbers to penalize.
               </p>
 
               <div className="input-group">
@@ -1004,7 +1266,12 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
               </div>
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsAdjustmentModalOpen(false)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setIsAdjustmentModalOpen(false)}
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
@@ -1020,12 +1287,20 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
         <div className="modal-overlay">
           <div className={`glass-card modal-content theme-${kidEditForm.color_theme}`}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Sparkles size={20} style={{ color: `var(--theme-${kidEditForm.color_theme})` }} /> Edit Hero Profile
+              <h3
+                style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <Sparkles size={20} style={{ color: `var(--theme-${kidEditForm.color_theme})` }} />{' '}
+                Edit Hero Profile
               </h3>
-              <button className="modal-close" onClick={() => setIsKidEditModalOpen(false)}>✕</button>
+              <button className="modal-close" onClick={() => setIsKidEditModalOpen(false)}>
+                ✕
+              </button>
             </div>
-            <form onSubmit={handleKidEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form
+              onSubmit={handleKidEditSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
               <div className="input-group">
                 <span className="input-label">Hero Name</span>
                 <input
@@ -1041,8 +1316,15 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
 
               <div className="input-group">
                 <span className="input-label">Choose Avatar Emoji</span>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  {avatarsList.map(av => (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(6, 1fr)',
+                    gap: '0.5rem',
+                    marginTop: '0.25rem'
+                  }}
+                >
+                  {avatarsList.map((av) => (
                     <button
                       key={av}
                       type="button"
@@ -1051,8 +1333,14 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                         padding: '0.5rem',
                         fontSize: '1.5rem',
                         textAlign: 'center',
-                        borderColor: kidEditForm.avatar === av ? `var(--theme-${kidEditForm.color_theme})` : 'var(--card-border)',
-                        background: kidEditForm.avatar === av ? `var(--theme-${kidEditForm.color_theme}-glow)` : 'transparent',
+                        borderColor:
+                          kidEditForm.avatar === av
+                            ? `var(--theme-${kidEditForm.color_theme})`
+                            : 'var(--card-border)',
+                        background:
+                          kidEditForm.avatar === av
+                            ? `var(--theme-${kidEditForm.color_theme}-glow)`
+                            : 'transparent',
                         borderRadius: '12px'
                       }}
                       onClick={() => setKidEditForm({ ...kidEditForm, avatar: av })}
@@ -1066,7 +1354,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
               <div className="input-group">
                 <span className="input-label">Accent Theme Color</span>
                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
-                  {colorsList.map(col => (
+                  {colorsList.map((col) => (
                     <button
                       key={col}
                       type="button"
@@ -1094,18 +1382,27 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                   placeholder="••••"
                   maxLength={4}
                   value={kidEditForm.pin}
-                  onChange={(e) => setKidEditForm({ ...kidEditForm, pin: e.target.value.replace(/\D/g, '') })}
+                  onChange={(e) =>
+                    setKidEditForm({ ...kidEditForm, pin: e.target.value.replace(/\D/g, '') })
+                  }
                 />
               </div>
 
               {editError && (
-                <div style={{ color: 'var(--theme-rose)', fontSize: '0.9rem', textAlign: 'center' }}>
+                <div
+                  style={{ color: 'var(--theme-rose)', fontSize: '0.9rem', textAlign: 'center' }}
+                >
                   {editError}
                 </div>
               )}
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsKidEditModalOpen(false)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setIsKidEditModalOpen(false)}
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>

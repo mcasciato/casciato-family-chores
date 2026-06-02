@@ -5,6 +5,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const logger = require('./logger');
 
 function hashPin(pin, salt) {
   if (!salt) {
@@ -14,9 +15,11 @@ function hashPin(pin, salt) {
   return { salt, hash };
 }
 
-
-const dbPath = process.env.DATABASE_PATH ||
-  (process.env.DATABASE_URL ? process.env.DATABASE_URL.replace('file://', '') : path.join(__dirname, 'database.sqlite'));
+const dbPath =
+  process.env.DATABASE_PATH ||
+  (process.env.DATABASE_URL
+    ? process.env.DATABASE_URL.replace('file://', '')
+    : path.join(__dirname, 'database.sqlite'));
 
 // Ensure parent directory exists
 const dbDir = path.dirname(dbPath);
@@ -24,16 +27,14 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-const dbExists = fs.existsSync(dbPath);
-
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('Error opening database:', err.message);
+    logger.error('Error opening database:', err.message);
   } else {
-    console.log('Connected to SQLite database at:', dbPath);
+    logger.info('Connected to SQLite database at:', dbPath);
     db.run('PRAGMA foreign_keys = ON;', (pragmaErr) => {
       if (pragmaErr) {
-        console.error('Failed to enable foreign keys:', pragmaErr.message);
+        logger.error('Failed to enable foreign keys:', pragmaErr.message);
       }
     });
   }
@@ -95,7 +96,7 @@ async function transaction(queriesFn) {
 
 // Database Initialization
 async function initDatabase() {
-  console.log('Initializing database schemas...');
+  logger.info('Initializing database schemas...');
 
   // 1. Kids Table
   await run(`
@@ -168,11 +169,11 @@ async function seedDatabase() {
   // Check if kids table is empty to perform seeding
   const kidsCount = await get('SELECT COUNT(*) as count FROM kids');
   if (kidsCount.count > 0) {
-    console.log('Database already has data. Skipping seed.');
+    logger.info('Database already has data. Skipping seed.');
     return;
   }
 
-  console.log('Seeding initial family data...');
+  logger.info('Seeding initial family data...');
 
   // Seed Kids with placeholder PINs (to be changed securely in the Parent Dashboard)
   const macPinData = hashPin('1111');
@@ -204,8 +205,8 @@ async function seedDatabase() {
 
   // Get kids IDs
   const dbKids = await all('SELECT id, name FROM kids');
-  const macId = dbKids.find(k => k.name === 'Mac').id;
-  const lucyId = dbKids.find(k => k.name === 'Lucy').id;
+  const macId = dbKids.find((k) => k.name === 'Mac').id;
+  const lucyId = dbKids.find((k) => k.name === 'Lucy').id;
 
   // Seed Chores`
   const chores = [
@@ -280,29 +281,41 @@ async function seedDatabase() {
       schedule_type: 'daily',
       schedule_days: null,
       assigned_to: lucyId
-    },
+    }
   ];
 
   for (const chore of chores) {
     await run(
       'INSERT INTO chores (title, description, points, schedule_type, schedule_days, assigned_to) VALUES (?, ?, ?, ?, ?, ?)',
-      [chore.title, chore.description, chore.points, chore.schedule_type, chore.schedule_days, chore.assigned_to]
+      [
+        chore.title,
+        chore.description,
+        chore.points,
+        chore.schedule_type,
+        chore.schedule_days,
+        chore.assigned_to
+      ]
     );
   }
 
   // Seed Rewards
   const rewards = [
-    { title: 'New Tablet', description: 'Get a brand-new tablet for our upcoming July trip!', points_cost: 1500 }
+    {
+      title: 'New Tablet',
+      description: 'Get a brand-new tablet for our upcoming July trip!',
+      points_cost: 1500
+    }
   ];
 
   for (const reward of rewards) {
-    await run(
-      'INSERT INTO rewards (title, description, points_cost) VALUES (?, ?, ?)',
-      [reward.title, reward.description, reward.points_cost]
-    );
+    await run('INSERT INTO rewards (title, description, points_cost) VALUES (?, ?, ?)', [
+      reward.title,
+      reward.description,
+      reward.points_cost
+    ]);
   }
 
-  console.log('Database successfully seeded!');
+  logger.info('Database successfully seeded!');
 }
 
 module.exports = {
