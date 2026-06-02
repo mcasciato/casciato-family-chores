@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Michael Casciato
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
