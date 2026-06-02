@@ -30,9 +30,6 @@ Built with a gorgeous glassmorphic dark-mode UI, it treats kids as "Heroes," cho
 You can get ChoreQuest up and running on your local Mac/PC in minutes:
 
 1.  **Clone / Navigate** to the project directory:
-    ```bash
-    cd /Users/michaelcasciato/Documents/dev/chore-app
-    ```
 2.  **Make the setup script executable**:
     ```bash
     chmod +x setup.sh
