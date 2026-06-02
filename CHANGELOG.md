@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.1.0...v1.2.0) (2026-06-02)
+
+
+### Features
+
+* isolate parent PIN verification from kid accounts ([0cf130a](https://github.com/mcasciato/casciato-family-chores/commit/0cf130ab0787a08c5ab24d7f199877ada96ec2ab))
+
 ## [1.1.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.0.0...v1.1.0) (2026-06-02)
 
 ### Features
