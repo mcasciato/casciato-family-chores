@@ -220,7 +220,7 @@ app.post(
   })
 );
 
-// Verify Parent PIN (against any child PIN or master environment/fallback PIN)
+// Verify Parent PIN (against master environment/fallback PIN)
 app.post(
   '/api/verify-parent-pin',
   rateLimiter,
@@ -228,10 +228,7 @@ app.post(
     const { pin } = req.body;
     const parentMasterPin = process.env.PARENT_PIN || '0510';
 
-    const kids = await dbManager.all('SELECT pin_hash, pin_salt FROM kids');
-    const matched = kids.find((k) => dbManager.hashPin(pin || '', k.pin_salt).hash === k.pin_hash);
-
-    if (matched || pin === parentMasterPin) {
+    if (pin === parentMasterPin) {
       clearFailedAttempts(req);
       // Generate secure session token
       const token = crypto.randomBytes(16).toString('hex');
