@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.0.0...v1.1.0) (2026-06-02)
+
+
+### Features
+
+* implement custom logger utility and integrate dotenv ([ec7be39](https://github.com/mcasciato/casciato-family-chores/commit/ec7be3926f9b14ca5777830296deeea5dd4c42ea))
+
 ## 1.0.0 (2026-06-01)
 
 ### Features
