@@ -95,6 +95,78 @@ const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
+// Setup & Config endpoints
+app.get(
+  '/api/setup-status',
+  asyncHandler(async (req, res) => {
+    const kidsCount = await dbManager.get('SELECT COUNT(*) as count FROM kids');
+    const guildNameSetting = await dbManager.get(
+      "SELECT value FROM settings WHERE key = 'guild_name'"
+    );
+    const initialized = kidsCount.count > 0 || !!guildNameSetting;
+    res.json({ initialized });
+  })
+);
+
+app.post(
+  '/api/setup',
+  asyncHandler(async (req, res) => {
+    const kidsCount = await dbManager.get('SELECT COUNT(*) as count FROM kids');
+    const guildNameSetting = await dbManager.get(
+      "SELECT value FROM settings WHERE key = 'guild_name'"
+    );
+    if (kidsCount.count > 0 || !!guildNameSetting) {
+      return res.status(400).json({ error: 'App has already been initialized.' });
+    }
+
+    const { guild_name, parent_pin, kid } = req.body;
+    if (!guild_name || !parent_pin || !kid || !kid.name || !kid.avatar) {
+      return res
+        .status(400)
+        .json({ error: 'Guild name, parent PIN, and initial kid profile are required.' });
+    }
+
+    await dbManager.transaction(async () => {
+      // Store settings
+      await dbManager.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('guild_name', ?)", [
+        guild_name
+      ]);
+
+      // Hash parent pin
+      const { hash: parentHash, salt: parentSalt } = dbManager.hashPin(parent_pin);
+      await dbManager.run(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES ('parent_pin_hash', ?)",
+        [parentHash]
+      );
+      await dbManager.run(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES ('parent_pin_salt', ?)",
+        [parentSalt]
+      );
+
+      // Create first kid profile
+      const { hash: kidHash, salt: kidSalt } = dbManager.hashPin(kid.pin || '1234');
+      await dbManager.run(
+        'INSERT INTO kids (name, avatar, color_theme, pin_hash, pin_salt) VALUES (?, ?, ?, ?, ?)',
+        [kid.name, kid.avatar, kid.color_theme || 'purple', kidHash, kidSalt]
+      );
+    });
+
+    res.status(201).json({ success: true });
+  })
+);
+
+app.get(
+  '/api/config',
+  asyncHandler(async (req, res) => {
+    const guildNameSetting = await dbManager.get(
+      "SELECT value FROM settings WHERE key = 'guild_name'"
+    );
+    res.json({
+      guild_name: guildNameSetting ? guildNameSetting.value : 'ChoreQuest'
+    });
+  })
+);
+
 // ==========================================
 // 1. KIDS API ENDPOINTS
 // ==========================================
@@ -220,15 +292,26 @@ app.post(
   })
 );
 
-// Verify Parent PIN (against master environment/fallback PIN)
+// Verify Parent PIN (against SQLite settings table or master environment/fallback PIN)
 app.post(
   '/api/verify-parent-pin',
   rateLimiter,
   asyncHandler(async (req, res) => {
     const { pin } = req.body;
-    const parentMasterPin = process.env.PARENT_PIN || '0510';
 
-    if (pin === parentMasterPin) {
+    const dbHash = await dbManager.get("SELECT value FROM settings WHERE key = 'parent_pin_hash'");
+    const dbSalt = await dbManager.get("SELECT value FROM settings WHERE key = 'parent_pin_salt'");
+
+    let verified = false;
+    if (dbHash && dbSalt) {
+      const { hash } = dbManager.hashPin(pin || '', dbSalt.value);
+      verified = hash === dbHash.value;
+    } else {
+      const parentMasterPin = process.env.PARENT_PIN || '0510';
+      verified = pin === parentMasterPin;
+    }
+
+    if (verified) {
       clearFailedAttempts(req);
       // Generate secure session token
       const token = crypto.randomBytes(16).toString('hex');

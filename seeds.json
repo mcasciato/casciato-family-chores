@@ -1,0 +1,80 @@
+{
+  "chores": [
+    {
+      "title": "Make your bed",
+      "description": "Straighten the sheets, blanket, and pillows.",
+      "points": 10,
+      "schedule_type": "daily",
+      "schedule_days": null
+    },
+    {
+      "title": "Put away shoes and jacket",
+      "description": "Hang up your coat and place shoes in the bin/closet.",
+      "points": 5,
+      "schedule_type": "daily",
+      "schedule_days": null
+    },
+    {
+      "title": "Empty the dishwasher",
+      "description": "Carefully put away clean dishes, cups, and utensils.",
+      "points": 15,
+      "schedule_type": "daily",
+      "schedule_days": null
+    },
+    {
+      "title": "Wipe the dinner table",
+      "description": "Wipe down eating areas after dinner is finished.",
+      "points": 10,
+      "schedule_type": "daily",
+      "schedule_days": null
+    },
+    {
+      "title": "Clean up toys and books",
+      "description": "Return all toys and books to their proper shelves/bins.",
+      "points": 15,
+      "schedule_type": "daily",
+      "schedule_days": null
+    },
+    {
+      "title": "Fold and put away laundry",
+      "description": "Fold your clean clothes and place them neatly in drawers.",
+      "points": 40,
+      "schedule_type": "weekly",
+      "schedule_days": null
+    },
+    {
+      "title": "Take out trash & recycling",
+      "description": "Empty the room bins and take them to the main bins.",
+      "points": 20,
+      "schedule_type": "weekly",
+      "schedule_days": null
+    }
+  ],
+  "rewards": [
+    {
+      "title": "Stay up 15 mins late",
+      "description": "Extra 15 minutes before bedtime.",
+      "points_cost": 50
+    },
+    {
+      "title": "30 Mins Screen Time",
+      "description": "Play games or watch your favorite show.",
+      "points_cost": 100
+    },
+    {
+      "title": "Special Ice Cream Treat",
+      "description": "A delicious ice cream treat after dinner.",
+      "points_cost": 150
+    },
+    {
+      "title": "Choose what's for dinner",
+      "description": "Pick the menu for one family dinner this week.",
+      "points_cost": 200
+    },
+    {
+      "title": "Family movie night selection",
+      "description": "Choose the movie for the next family movie night.",
+      "points_cost": 300
+    }
+  ]
+}

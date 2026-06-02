@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import ProfileSelect from './pages/ProfileSelect.jsx';
 import KidDashboard from './pages/KidDashboard.jsx';
 import ParentDashboard from './pages/ParentDashboard.jsx';
+import SetupWizard from './pages/SetupWizard.jsx';
 import { ShieldCheck, Sun, Moon } from 'lucide-react';
 
 export default function App() {
-  const [view, setView] = useState('profile_select'); // 'profile_select', 'kid_dashboard', 'parent_dashboard'
+  const [view, setView] = useState('profile_select'); // 'profile_select', 'kid_dashboard', 'parent_dashboard', 'setup_wizard'
   const [kids, setKids] = useState([]);
   const [currentKid, setCurrentKid] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(true);
+  const [guildName, setGuildName] = useState('ChoreQuest');
 
   // Dynamic Light/Dark Theme management
   const [theme, setTheme] = useState(() => {
@@ -38,21 +41,50 @@ export default function App() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  // Fetch kids list on initial mount
+  // Check setup status on mount
   useEffect(() => {
-    fetchKids();
+    checkSetupStatus();
   }, []);
 
-  const fetchKids = async () => {
+  const checkSetupStatus = async () => {
     setLoading(true);
+    try {
+      const res = await fetch('/api/setup-status');
+      const data = await res.json();
+      setInitialized(data.initialized);
+      if (!data.initialized) {
+        setView('setup_wizard');
+      } else {
+        await fetchKids();
+        await fetchConfig();
+        setView('profile_select');
+      }
+    } catch (err) {
+      console.error('Error checking setup status:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchConfig = async () => {
+    try {
+      const res = await fetch('/api/config');
+      const data = await res.json();
+      if (data.guild_name) {
+        setGuildName(data.guild_name);
+      }
+    } catch (err) {
+      console.error('Error fetching config:', err);
+    }
+  };
+
+  const fetchKids = async () => {
     try {
       const res = await fetch('/api/kids');
       const data = await res.json();
       setKids(data);
     } catch (err) {
       console.error('Error fetching kids profiles:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -107,13 +139,17 @@ export default function App() {
     }
   };
 
+  if (view === 'setup_wizard') {
+    return <SetupWizard onSetupComplete={checkSetupStatus} />;
+  }
+
   return (
     <div className="app-container">
       {/* Global Header */}
       <header className="app-header">
         <div className="brand" onClick={handleBackToProfiles} style={{ cursor: 'pointer' }}>
           <span className="logo-icon">👑</span>
-          <h1>ChoreQuest</h1>
+          <h1>{guildName}</h1>
         </div>
 
         <div
