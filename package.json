@@ -19,7 +19,7 @@
     "sqlite"
   ],
   "author": "Antigravity",
-  "license": "ISC",
+  "license": "GPL-3.0-only",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
