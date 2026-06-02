@@ -9,7 +9,7 @@ export default function SetupWizard({ onSetupComplete }) {
 
   const [kidName, setKidName] = useState('');
   const [kidPin, setKidPin] = useState('');
-  const [kidTheme, setKidTheme] = useState('purple');
+  const [kidTheme, setKidTheme] = useState('violet');
   const [kidAvatar, setKidAvatar] = useState('⚔️');
 
   const [loading, setLoading] = useState(false);
@@ -17,10 +17,10 @@ export default function SetupWizard({ onSetupComplete }) {
 
   const avatars = ['⚔️', '🛡️', '🚀', '🦄', '🦖', '🦁', '🐼', '🦊', '🧙‍♂️', '🧝‍♀️'];
   const themes = [
-    { name: 'purple', class: 'from-purple-500 to-indigo-600', color: '#7c3aed' },
+    { name: 'violet', class: 'from-purple-500 to-indigo-600', color: '#7c3aed' },
     { name: 'blue', class: 'from-blue-500 to-cyan-600', color: '#0ea5e9' },
     { name: 'rose', class: 'from-rose-500 to-pink-600', color: '#f43f5e' },
-    { name: 'green', class: 'from-emerald-500 to-teal-600', color: '#10b981' },
+    { name: 'emerald', class: 'from-emerald-500 to-teal-600', color: '#10b981' },
     { name: 'amber', class: 'from-amber-500 to-orange-600', color: '#f59e0b' }
   ];
 

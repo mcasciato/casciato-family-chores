@@ -1016,7 +1016,7 @@ select {
 }
 
 /* Gradients for theme buttons */
-.bg-grad-purple {
+.bg-grad-violet {
   background: linear-gradient(135deg, #7c3aed, #4f46e5);
 }
 .bg-grad-blue {
@@ -1025,7 +1025,7 @@ select {
 .bg-grad-rose {
   background: linear-gradient(135deg, #f43f5e, #db2777);
 }
-.bg-grad-green {
+.bg-grad-emerald {
   background: linear-gradient(135deg, #10b981, #059669);
 }
 .bg-grad-amber {
