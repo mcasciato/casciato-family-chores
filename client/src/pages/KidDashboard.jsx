@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Sword, Trophy, Coins, Award, CheckCircle, Clock, AlertTriangle, ShoppingBag, LogOut, ArrowRight } from 'lucide-react';
+import {
+  Sword,
+  Trophy,
+  Coins,
+  Award,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  ShoppingBag,
+  LogOut,
+  ArrowRight
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints }) {
@@ -91,7 +102,7 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
 
       if (res.ok) {
         const redemption = await res.json();
-        
+
         // Big confetti explosion for reward redemption!
         confetti({
           particleCount: 150,
@@ -101,8 +112,10 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
 
         // Update the kid's points inside parent state
         onUpdateKidPoints(kid.points - reward.points_cost);
-        
-        setSuccessMessage(`Success! You redeemed "${reward.title}". Ask your parents for your reward!`);
+
+        setSuccessMessage(
+          `Success! You redeemed "${reward.title}". Ask your parents for your reward!`
+        );
         setTimeout(() => setSuccessMessage(''), 5000);
         fetchData();
       } else {
@@ -115,27 +128,42 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
   };
 
   // Compute stats
-  const completedToday = chores.filter(c => c.completion_status === 'approved' || c.completion_status === 'pending').length;
+  const completedToday = chores.filter(
+    (c) => c.completion_status === 'approved' || c.completion_status === 'pending'
+  ).length;
   const totalChores = chores.length;
   const percentCompleted = totalChores > 0 ? Math.round((completedToday / totalChores) * 100) : 0;
 
   return (
     <div className={`theme-${kid.color_theme}`} style={{ width: '100%' }}>
       {/* Top Banner Profile Summary */}
-      <div className="glass-panel active-theme-card" style={{ marginBottom: '2.5rem', padding: '1.75rem 2rem' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
+      <div
+        className="glass-panel active-theme-card"
+        style={{ marginBottom: '2.5rem', padding: '1.75rem 2rem' }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1.5rem'
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <div style={{
-              width: '72px',
-              height: '72px',
-              borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.05)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '2.75rem',
-              border: '2px solid var(--accent)'
-            }}>
+            <div
+              style={{
+                width: '72px',
+                height: '72px',
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.05)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2.75rem',
+                border: '2px solid var(--accent)'
+              }}
+            >
               {kid.avatar}
             </div>
             <div>
@@ -147,11 +175,28 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
           </div>
 
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-            <div className="glass-card" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              className="glass-card"
+              style={{
+                padding: '0.75rem 1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}
+            >
               <Coins size={28} style={{ color: 'var(--theme-amber)' }} />
               <div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 800 }}>{kid.points}</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Gold Coins</div>
+                <div
+                  style={{
+                    fontSize: '0.7rem',
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    fontWeight: 600
+                  }}
+                >
+                  Gold Coins
+                </div>
               </div>
             </div>
 
@@ -163,30 +208,52 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
 
         {/* Progress Tracker bar */}
         {totalChores > 0 && (
-          <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: 600 }}>
+          <div
+            style={{
+              marginTop: '1.5rem',
+              paddingTop: '1.25rem',
+              borderTop: '1px solid rgba(255,255,255,0.05)'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '0.85rem',
+                marginBottom: '0.5rem',
+                fontWeight: 600
+              }}
+            >
               <span style={{ color: 'var(--text-muted)' }}>TODAY'S CAMPAIGN PROGRESS</span>
-              <span style={{ color: 'var(--accent)' }}>{completedToday}/{totalChores} Quests Submitting ({percentCompleted}%)</span>
+              <span style={{ color: 'var(--accent)' }}>
+                {completedToday}/{totalChores} Quests Submitting ({percentCompleted}%)
+              </span>
             </div>
             <div className="progress-container">
-              <div className="progress-bar" style={{ width: `${percentCompleted}%`, backgroundColor: 'var(--accent)' }} />
+              <div
+                className="progress-bar"
+                style={{ width: `${percentCompleted}%`, backgroundColor: 'var(--accent)' }}
+              />
             </div>
           </div>
         )}
       </div>
 
       {successMessage && (
-        <div className="glass-card" style={{
-          background: 'rgba(16, 185, 129, 0.1)',
-          borderColor: 'var(--theme-emerald)',
-          color: 'var(--text-white)',
-          padding: '1rem',
-          borderRadius: '12px',
-          marginBottom: '2rem',
-          textAlign: 'center',
-          fontWeight: 500,
-          animation: 'fadeIn 0.3s'
-        }}>
+        <div
+          className="glass-card"
+          style={{
+            background: 'rgba(16, 185, 129, 0.1)',
+            borderColor: 'var(--theme-emerald)',
+            color: 'var(--text-white)',
+            padding: '1rem',
+            borderRadius: '12px',
+            marginBottom: '2rem',
+            textAlign: 'center',
+            fontWeight: 500,
+            animation: 'fadeIn 0.3s'
+          }}
+        >
           ✨ {successMessage}
         </div>
       )}
@@ -211,15 +278,17 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid rgba(255,255,255,0.1)',
-            borderTopColor: 'var(--accent)',
-            borderRadius: '50%',
-            animation: 'scaleIn 1s infinite linear',
-            margin: '0 auto 1rem auto'
-          }} />
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid rgba(255,255,255,0.1)',
+              borderTopColor: 'var(--accent)',
+              borderRadius: '50%',
+              animation: 'scaleIn 1s infinite linear',
+              margin: '0 auto 1rem auto'
+            }}
+          />
           <p style={{ color: 'var(--text-muted)' }}>Loading active campaign data...</p>
         </div>
       ) : activeTab === 'quests' ? (
@@ -229,7 +298,9 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
             <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
               <Trophy size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
               <h3 style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>All Quests Clear!</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>No active chores are scheduled for you today. Take a well-deserved rest!</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+                No active chores are scheduled for you today. Take a well-deserved rest!
+              </p>
             </div>
           ) : (
             <div className="dashboard-grid">
@@ -242,73 +313,153 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
                 if (isApproved) cardClass += ' active-theme-card';
 
                 return (
-                  <div key={chore.id} className={cardClass} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+                  <div
+                    key={chore.id}
+                    className={cardClass}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '180px'
+                    }}
+                  >
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                        <span style={{
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid var(--card-border)',
-                          borderRadius: '8px',
-                          padding: '0.25rem 0.5rem',
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          textTransform: 'uppercase',
-                          fontWeight: 600
-                        }}>
-                          {chore.schedule_type === 'alternate' ? 'every other day' : chore.schedule_type}
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '0.75rem'
+                        }}
+                      >
+                        <span
+                          style={{
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid var(--card-border)',
+                            borderRadius: '8px',
+                            padding: '0.25rem 0.5rem',
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            fontWeight: 600
+                          }}
+                        >
+                          {chore.schedule_type === 'alternate'
+                            ? 'every other day'
+                            : chore.schedule_type}
                         </span>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--theme-amber)', fontWeight: 700, fontSize: '1.1rem' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            color: 'var(--theme-amber)',
+                            fontWeight: 700,
+                            fontSize: '1.1rem'
+                          }}
+                        >
                           🪙 {chore.points}
                         </div>
                       </div>
 
-                      <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: isApproved ? 'var(--accent)' : 'inherit' }}>
+                      <h3
+                        style={{
+                          fontSize: '1.25rem',
+                          marginBottom: '0.5rem',
+                          color: isApproved ? 'var(--accent)' : 'inherit'
+                        }}
+                      >
                         {chore.title}
                       </h3>
-                      <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      <p
+                        style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.4 }}
+                      >
                         {chore.description}
                       </p>
                     </div>
 
-                    <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div
+                      style={{
+                        marginTop: '1.5rem',
+                        paddingTop: '1rem',
+                        borderTop: '1px solid rgba(255,255,255,0.05)'
+                      }}
+                    >
                       {isApproved && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--theme-emerald)', fontWeight: 600, fontSize: '0.9rem' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            color: 'var(--theme-emerald)',
+                            fontWeight: 600,
+                            fontSize: '0.9rem'
+                          }}
+                        >
                           <CheckCircle size={18} /> Quest Complete & Approved!
                         </div>
                       )}
 
                       {isPending && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--theme-amber)', fontWeight: 600, fontSize: '0.9rem' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            color: 'var(--theme-amber)',
+                            fontWeight: 600,
+                            fontSize: '0.9rem'
+                          }}
+                        >
                           <Clock size={18} className="logo-icon" /> Under Review by Parents
                         </div>
                       )}
 
                       {isRejected && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--theme-rose)', fontWeight: 600, fontSize: '0.9rem' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              color: 'var(--theme-rose)',
+                              fontWeight: 600,
+                              fontSize: '0.9rem'
+                            }}
+                          >
                             <AlertTriangle size={18} /> Revision Needed
                           </div>
                           {chore.completion_feedback && (
-                            <p style={{
-                              background: 'rgba(244,63,94,0.05)',
-                              borderLeft: '3px solid var(--theme-rose)',
-                              padding: '0.5rem 0.75rem',
-                              fontSize: '0.85rem',
-                              color: 'var(--text-muted)',
-                              borderRadius: '4px'
-                            }}>
+                            <p
+                              style={{
+                                background: 'rgba(244,63,94,0.05)',
+                                borderLeft: '3px solid var(--theme-rose)',
+                                padding: '0.5rem 0.75rem',
+                                fontSize: '0.85rem',
+                                color: 'var(--text-muted)',
+                                borderRadius: '4px'
+                              }}
+                            >
                               &ldquo;{chore.completion_feedback}&rdquo;
                             </p>
                           )}
-                          <button className="btn btn-primary" style={{ width: '100%', gap: '0.25rem' }} onClick={() => handleCompleteChore(chore.id)}>
+                          <button
+                            className="btn btn-primary"
+                            style={{ width: '100%', gap: '0.25rem' }}
+                            onClick={() => handleCompleteChore(chore.id)}
+                          >
                             Resubmit Quest <ArrowRight size={16} />
                           </button>
                         </div>
                       )}
 
                       {chore.completion_status === 'uncompleted' && (
-                        <button className="btn btn-primary" style={{ width: '100%', gap: '0.25rem' }} onClick={() => handleCompleteChore(chore.id)}>
+                        <button
+                          className="btn btn-primary"
+                          style={{ width: '100%', gap: '0.25rem' }}
+                          onClick={() => handleCompleteChore(chore.id)}
+                        >
                           Complete Quest <ArrowRight size={16} />
                         </button>
                       )}
@@ -326,7 +477,9 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
             <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
               <ShoppingBag size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
               <h3 style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>Loot Shop Empty</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>There are currently no rewards stocked. Remind parents to add some loot!</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+                There are currently no rewards stocked. Remind parents to add some loot!
+              </p>
             </div>
           ) : (
             <div className="dashboard-grid">
@@ -334,23 +487,50 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
                 const canAfford = kid.points >= reward.points_cost;
 
                 return (
-                  <div key={reward.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+                  <div
+                    key={reward.id}
+                    className="glass-card"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '180px'
+                    }}
+                  >
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                        <span style={{
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid var(--card-border)',
-                          borderRadius: '8px',
-                          padding: '0.25rem 0.5rem',
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          textTransform: 'uppercase',
-                          fontWeight: 600
-                        }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '0.75rem'
+                        }}
+                      >
+                        <span
+                          style={{
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid var(--card-border)',
+                            borderRadius: '8px',
+                            padding: '0.25rem 0.5rem',
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            fontWeight: 600
+                          }}
+                        >
                           Reward
                         </span>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--theme-amber)', fontWeight: 700, fontSize: '1.1rem' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            color: 'var(--theme-amber)',
+                            fontWeight: 700,
+                            fontSize: '1.1rem'
+                          }}
+                        >
                           🪙 {reward.points_cost}
                         </div>
                       </div>
@@ -358,18 +538,28 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
                       <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
                         {reward.title}
                       </h3>
-                      <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      <p
+                        style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.4 }}
+                      >
                         {reward.description}
                       </p>
                     </div>
 
-                    <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div
+                      style={{
+                        marginTop: '1.5rem',
+                        paddingTop: '1rem',
+                        borderTop: '1px solid rgba(255,255,255,0.05)'
+                      }}
+                    >
                       <button
                         className="btn btn-primary"
                         style={{
                           width: '100%',
                           gap: '0.5rem',
-                          background: canAfford ? 'linear-gradient(135deg, var(--theme-amber) 0%, #fbbf24 100%)' : 'rgba(255, 255, 255, 0.03)',
+                          background: canAfford
+                            ? 'linear-gradient(135deg, var(--theme-amber) 0%, #fbbf24 100%)'
+                            : 'rgba(255, 255, 255, 0.03)',
                           color: canAfford ? 'var(--text-dark)' : 'var(--text-muted)',
                           cursor: canAfford ? 'pointer' : 'not-allowed',
                           boxShadow: canAfford ? '0 4px 12px rgba(245,158,11,0.2)' : 'none'

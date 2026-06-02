@@ -101,10 +101,19 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
   return (
     <div style={{ maxWidth: '800px', margin: '4rem auto 0 auto', width: '100%' }}>
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>
+        <h2
+          style={{
+            fontSize: '2.5rem',
+            fontWeight: 800,
+            marginBottom: '0.5rem',
+            fontFamily: 'var(--font-display)'
+          }}
+        >
           Who is playing today?
         </h2>
-        <p style={{ color: 'var(--text-muted)' }}>Select your profile to check your Quests or claim your Loot!</p>
+        <p style={{ color: 'var(--text-muted)' }}>
+          Select your profile to check your Quests or claim your Loot!
+        </p>
       </div>
 
       <div className="kids-selection-grid">
@@ -114,9 +123,7 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
             className={`glass-card profile-card theme-${kid.color_theme}`}
             onClick={() => handleProfileClick(kid)}
           >
-            <div className="avatar-circle">
-              {kid.avatar}
-            </div>
+            <div className="avatar-circle">{kid.avatar}</div>
             <h3 style={{ fontSize: '1.4rem', marginBottom: '0.25rem' }}>{kid.name}</h3>
             <span style={{ fontSize: '0.9rem', color: 'var(--accent)', fontWeight: 600 }}>
               🪙 {kid.points} Gold
@@ -133,45 +140,62 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
           <div className="avatar-circle" style={{ background: 'rgba(255,255,255,0.01)' }}>
             <Plus size={40} style={{ color: 'var(--text-muted)' }} />
           </div>
-          <h3 style={{ fontSize: '1.4rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Add Hero</h3>
+          <h3 style={{ fontSize: '1.4rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+            Add Hero
+          </h3>
           <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Create Profile</span>
         </div>
       </div>
 
       {/* Parent Command Center Section */}
       <div style={{ marginTop: '4rem', display: 'flex', justifyContent: 'center' }}>
-        <button className="user-badge theme-parent" onClick={handleParentCommandClick} style={{ padding: '0.75rem 1.75rem' }}>
+        <button
+          className="user-badge theme-parent"
+          onClick={handleParentCommandClick}
+          style={{ padding: '0.75rem 1.75rem' }}
+        >
           <ShieldCheck size={20} style={{ color: 'var(--theme-parent)' }} />
-          <span className="user-name" style={{ fontSize: '1rem' }}>Parent Command Center</span>
+          <span className="user-name" style={{ fontSize: '1rem' }}>
+            Parent Command Center
+          </span>
         </button>
       </div>
 
       {/* PIN Verification Modal */}
       {pinModalKid && (
         <div className="modal-overlay">
-          <div className={`glass-card modal-content theme-${pinModalKid.id === 'parent' ? 'parent' : pinModalKid.color_theme}`}>
+          <div
+            className={`glass-card modal-content theme-${pinModalKid.id === 'parent' ? 'parent' : pinModalKid.color_theme}`}
+          >
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3
+                style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
                 {pinModalKid.id === 'parent' ? (
                   <>
                     <ShieldCheck /> Parent Mode Access
                   </>
                 ) : (
                   <>
-                    <span style={{ fontSize: '1.5rem' }}>{pinModalKid.avatar}</span> Unlock {pinModalKid.name}'s Profile
+                    <span style={{ fontSize: '1.5rem' }}>{pinModalKid.avatar}</span> Unlock{' '}
+                    {pinModalKid.name}'s Profile
                   </>
                 )}
               </h3>
-              <button className="modal-close" onClick={() => setPinModalKid(null)}>✕</button>
+              <button className="modal-close" onClick={() => setPinModalKid(null)}>
+                ✕
+              </button>
             </div>
-            <form onSubmit={handlePinSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form
+              onSubmit={handlePinSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
               <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
                 {pinModalKid.id === 'parent'
                   ? 'Please enter a 4-digit PIN to authenticate as a parent.'
-                  : `Please enter your 4-digit PIN to unlock ${pinModalKid.name}'s quest dashboard.`
-                }
+                  : `Please enter your 4-digit PIN to unlock ${pinModalKid.name}'s quest dashboard.`}
               </p>
-              
+
               <div className="input-group">
                 <input
                   type="password"
@@ -186,13 +210,20 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
               </div>
 
               {pinError && (
-                <div style={{ color: 'var(--theme-rose)', fontSize: '0.9rem', textAlign: 'center' }}>
+                <div
+                  style={{ color: 'var(--theme-rose)', fontSize: '0.9rem', textAlign: 'center' }}
+                >
                   {pinError}
                 </div>
               )}
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setPinModalKid(null)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setPinModalKid(null)}
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
@@ -209,12 +240,19 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
         <div className="modal-overlay">
           <div className="glass-card modal-content">
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3
+                style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
                 <Sparkles size={20} style={{ color: 'var(--theme-violet)' }} /> Summon New Hero
               </h3>
-              <button className="modal-close" onClick={() => setIsAddingProfile(false)}>✕</button>
+              <button className="modal-close" onClick={() => setIsAddingProfile(false)}>
+                ✕
+              </button>
             </div>
-            <form onSubmit={handleCreateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form
+              onSubmit={handleCreateProfile}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
               <div className="input-group">
                 <span className="input-label">Hero Name</span>
                 <input
@@ -230,8 +268,15 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
 
               <div className="input-group">
                 <span className="input-label">Choose Avatar Emoji</span>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  {avatars.map(av => (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(6, 1fr)',
+                    gap: '0.5rem',
+                    marginTop: '0.25rem'
+                  }}
+                >
+                  {avatars.map((av) => (
                     <button
                       key={av}
                       type="button"
@@ -240,8 +285,10 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
                         padding: '0.5rem',
                         fontSize: '1.5rem',
                         textAlign: 'center',
-                        borderColor: newKidAvatar === av ? 'var(--theme-violet)' : 'var(--card-border)',
-                        background: newKidAvatar === av ? 'var(--theme-violet-glow)' : 'transparent',
+                        borderColor:
+                          newKidAvatar === av ? 'var(--theme-violet)' : 'var(--card-border)',
+                        background:
+                          newKidAvatar === av ? 'var(--theme-violet-glow)' : 'transparent',
                         borderRadius: '12px'
                       }}
                       onClick={() => setNewKidAvatar(av)}
@@ -255,7 +302,7 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
               <div className="input-group">
                 <span className="input-label">Accent Theme Color</span>
                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
-                  {colors.map(col => (
+                  {colors.map((col) => (
                     <button
                       key={col}
                       type="button"
@@ -288,7 +335,12 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
               </div>
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsAddingProfile(false)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setIsAddingProfile(false)}
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>

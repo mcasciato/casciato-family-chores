@@ -35,7 +35,7 @@ export default function App() {
   }, []);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
   // Fetch kids list on initial mount
@@ -81,8 +81,8 @@ export default function App() {
       setCurrentKid({ ...currentKid, points: newPoints });
     }
     // Update inside kids array too
-    setKids(prevKids =>
-      prevKids.map(k => (k.id === currentKid?.id ? { ...k, points: newPoints } : k))
+    setKids((prevKids) =>
+      prevKids.map((k) => (k.id === currentKid?.id ? { ...k, points: newPoints } : k))
     );
   };
 
@@ -116,10 +116,13 @@ export default function App() {
           <h1>ChoreQuest</h1>
         </div>
 
-        <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button 
-            onClick={toggleTheme} 
-            className="btn btn-secondary" 
+        <div
+          className="header-actions"
+          style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}
+        >
+          <button
+            onClick={toggleTheme}
+            className="btn btn-secondary"
             title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
             style={{
               padding: '0.6rem',
@@ -138,7 +141,10 @@ export default function App() {
           </button>
 
           {view === 'kid_dashboard' && currentKid && (
-            <div className={`user-badge theme-${currentKid.color_theme}`} onClick={handleBackToProfiles}>
+            <div
+              className={`user-badge theme-${currentKid.color_theme}`}
+              onClick={handleBackToProfiles}
+            >
               <span className="user-avatar">{currentKid.avatar}</span>
               <span className="user-name">{currentKid.name}</span>
             </div>
@@ -154,18 +160,28 @@ export default function App() {
       </header>
 
       {/* Main Core View Engine */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+      <main
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          width: '100%'
+        }}
+      >
         {loading && view === 'profile_select' ? (
           <div style={{ textAlign: 'center', padding: '6rem 0' }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              border: '3px solid rgba(255,255,255,0.1)',
-              borderTopColor: 'var(--theme-violet)',
-              borderRadius: '50%',
-              animation: 'scaleIn 1s infinite linear',
-              margin: '0 auto 1.5rem auto'
-            }} />
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                border: '3px solid rgba(255,255,255,0.1)',
+                borderTopColor: 'var(--theme-violet)',
+                borderRadius: '50%',
+                animation: 'scaleIn 1s infinite linear',
+                margin: '0 auto 1.5rem auto'
+              }}
+            />
             <p style={{ color: 'var(--text-muted)' }}>Opening the gates of ChoreQuest...</p>
           </div>
         ) : (
@@ -200,14 +216,16 @@ export default function App() {
       </main>
 
       {/* Subtle Footer */}
-      <footer style={{
-        marginTop: '4rem',
-        paddingTop: '1.5rem',
-        borderTop: '1px solid var(--card-border)',
-        textAlign: 'center',
-        fontSize: '0.8rem',
-        color: 'var(--text-muted)'
-      }}>
+      <footer
+        style={{
+          marginTop: '4rem',
+          paddingTop: '1.5rem',
+          borderTop: '1px solid var(--card-border)',
+          textAlign: 'center',
+          fontSize: '0.8rem',
+          color: 'var(--text-muted)'
+        }}
+      >
         ChoreQuest — Gamified Family Chore System. Perfect for hosting on a local Raspberry Pi.
       </footer>
     </div>
