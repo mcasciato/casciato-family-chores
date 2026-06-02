@@ -162,10 +162,23 @@ async function initDatabase() {
     )
   `);
 
+  // 6. Settings Table (key-value storage)
+  await run(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `);
+
   await seedDatabase();
 }
 
 async function seedDatabase() {
+  if (process.env.SKIP_SEEDING === 'true') {
+    logger.info('SKIP_SEEDING is enabled. Skipping default database seeding.');
+    return;
+  }
+
   // Check if kids table is empty to perform seeding
   const kidsCount = await get('SELECT COUNT(*) as count FROM kids');
   if (kidsCount.count > 0) {
@@ -173,149 +186,48 @@ async function seedDatabase() {
     return;
   }
 
-  logger.info('Seeding initial family data...');
+  logger.info('Seeding default household data...');
 
-  // Seed Kids with placeholder PINs (to be changed securely in the Parent Dashboard)
-  const macPinData = hashPin('1111');
-  const lucyPinData = hashPin('2222');
-
-  const kids = [
-    {
-      name: 'Mac',
-      avatar: '🚀',
-      color_theme: 'blue',
-      pin_hash: macPinData.hash,
-      pin_salt: macPinData.salt
-    },
-    {
-      name: 'Lucy',
-      avatar: '🦄',
-      color_theme: 'rose',
-      pin_hash: lucyPinData.hash,
-      pin_salt: lucyPinData.salt
+  try {
+    const seedsPath = path.join(__dirname, 'seeds.json');
+    if (!fs.existsSync(seedsPath)) {
+      logger.warn('seeds.json file not found. Skipping seeding.');
+      return;
     }
-  ];
+    const seedsData = JSON.parse(fs.readFileSync(seedsPath, 'utf8'));
 
-  for (const kid of kids) {
-    await run(
-      'INSERT INTO kids (name, avatar, color_theme, pin_hash, pin_salt) VALUES (?, ?, ?, ?, ?)',
-      [kid.name, kid.avatar, kid.color_theme, kid.pin_hash, kid.pin_salt]
-    );
-  }
-
-  // Get kids IDs
-  const dbKids = await all('SELECT id, name FROM kids');
-  const macId = dbKids.find((k) => k.name === 'Mac').id;
-  const lucyId = dbKids.find((k) => k.name === 'Lucy').id;
-
-  // Seed Chores`
-  const chores = [
-    {
-      title: 'Put toys away',
-      description: 'Put toys away before bed.',
-      points: 30,
-      schedule_type: 'daily',
-      schedule_days: null,
-      assigned_to: macId
-    },
-    {
-      title: 'Plug in tablet',
-      description: 'Plug in tablet before bed.',
-      points: 5,
-      schedule_type: 'daily',
-      schedule_days: null,
-      assigned_to: lucyId
-    },
-    {
-      title: 'Empty the dishwasher as needed',
-      description: 'Empty the dishwasher as needed',
-      points: 25,
-      schedule_type: 'daily',
-      schedule_days: null,
-      assigned_to: null
-    },
-    {
-      title: 'Fold and put away laundry',
-      description: 'Fold your clean laundry basket and put it in drawers.',
-      points: 30,
-      schedule_type: 'weekly',
-      schedule_days: null,
-      assigned_to: lucyId
-    },
-    {
-      title: 'Fold towels',
-      description: 'Fold all towels.',
-      points: 30,
-      schedule_type: 'weekly',
-      schedule_days: null,
-      assigned_to: macId
-    },
-    {
-      title: 'Wipe eating areas after dinner',
-      description: 'Wipe eating areas after dinner.',
-      points: 15,
-      schedule_type: 'daily',
-      schedule_days: null,
-      assigned_to: macId
-    },
-    {
-      title: 'Water porch flowers',
-      description: 'Water all the planters.',
-      points: 20,
-      schedule_type: 'alternate',
-      schedule_days: '1',
-      assigned_to: lucyId
-    },
-    {
-      title: 'Vacuum the kitchen',
-      description: 'Vacuum the kitchen floor thoroughly.',
-      points: 20,
-      schedule_type: 'alternate',
-      schedule_days: null,
-      assigned_to: lucyId
-    },
-    {
-      title: 'Make sandwich at lunch',
-      description: 'Practice and make your own PB & J for lunch.',
-      points: 20,
-      schedule_type: 'daily',
-      schedule_days: null,
-      assigned_to: lucyId
+    // Seed Chores
+    if (Array.isArray(seedsData.chores)) {
+      for (const chore of seedsData.chores) {
+        await run(
+          'INSERT INTO chores (title, description, points, schedule_type, schedule_days, assigned_to) VALUES (?, ?, ?, ?, ?, ?)',
+          [
+            chore.title,
+            chore.description || '',
+            chore.points,
+            chore.schedule_type || 'daily',
+            chore.schedule_days || null,
+            null
+          ]
+        );
+      }
     }
-  ];
 
-  for (const chore of chores) {
-    await run(
-      'INSERT INTO chores (title, description, points, schedule_type, schedule_days, assigned_to) VALUES (?, ?, ?, ?, ?, ?)',
-      [
-        chore.title,
-        chore.description,
-        chore.points,
-        chore.schedule_type,
-        chore.schedule_days,
-        chore.assigned_to
-      ]
-    );
-  }
-
-  // Seed Rewards
-  const rewards = [
-    {
-      title: 'New Tablet',
-      description: 'Get a brand-new tablet for our upcoming July trip!',
-      points_cost: 1500
+    // Seed Rewards
+    if (Array.isArray(seedsData.rewards)) {
+      for (const reward of seedsData.rewards) {
+        await run('INSERT INTO rewards (title, description, points_cost) VALUES (?, ?, ?)', [
+          reward.title,
+          reward.description || '',
+          reward.points_cost
+        ]);
+      }
     }
-  ];
 
-  for (const reward of rewards) {
-    await run('INSERT INTO rewards (title, description, points_cost) VALUES (?, ?, ?)', [
-      reward.title,
-      reward.description,
-      reward.points_cost
-    ]);
+    logger.info('Database successfully seeded!');
+  } catch (err) {
+    logger.error('Failed to seed database from seeds.json:', err);
   }
-
-  logger.info('Database successfully seeded!');
 }
 
 module.exports = {

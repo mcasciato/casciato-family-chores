@@ -5,3 +5,4 @@ database.sqlite
 .env
 .DS_Store
 *.log
+database.sqlite.bak
