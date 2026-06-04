@@ -24,6 +24,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
   const [pendingRedemptions, setPendingRedemptions] = useState([]);
   const [choresList, setChoresList] = useState([]);
   const [rewardsList, setRewardsList] = useState([]);
+  const [kidsProgress, setKidsProgress] = useState({});
 
   // Modals & Forms State
   const [isChoreModalOpen, setIsChoreModalOpen] = useState(false);
@@ -65,6 +66,41 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
     fetchQueues();
     fetchResources();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (kids && kids.length > 0) {
+      const today = new Date();
+      const pad = (n) => n.toString().padStart(2, '0');
+      const dateStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+      Promise.all(
+        kids.map(async (kid) => {
+          try {
+            const res = await fetch(`/api/chores/daily/${kid.id}/${dateStr}`);
+            if (res.ok) {
+              const chores = await res.json();
+              const completed = chores.filter(
+                (c) => c.completion_status === 'approved' || c.completion_status === 'pending'
+              ).length;
+              const approved = chores.filter((c) => c.completion_status === 'approved').length;
+              const pending = chores.filter((c) => c.completion_status === 'pending').length;
+              const total = chores.length;
+              return { kidId: kid.id, completed, approved, pending, total };
+            }
+          } catch (err) {
+            console.error(`Error fetching progress for kid ${kid.id}:`, err);
+          }
+          return { kidId: kid.id, completed: 0, approved: 0, pending: 0, total: 0 };
+        })
+      ).then((results) => {
+        const progressMap = {};
+        results.forEach((r) => {
+          progressMap[r.kidId] = r;
+        });
+        setKidsProgress(progressMap);
+      });
+    }
+  }, [kids, pendingCompletions]);
 
   const fetchQueues = async () => {
     try {
@@ -447,6 +483,125 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
           <button className="btn btn-secondary" onClick={onBackToProfiles}>
             Exit Parent Mode
           </button>
+        </div>
+      </div>
+      
+      {/* Kids Progress Table */}
+      <div className="glass-panel" style={{ marginBottom: '2.5rem', padding: '1.5rem 2rem' }}>
+        <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span>📈</span> Heroes' Today Campaign Progress
+        </h3>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--card-border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                <th style={{ padding: '0.75rem 1rem' }}>Hero</th>
+                <th style={{ padding: '0.75rem 1rem' }}>Level</th>
+                <th style={{ padding: '0.75rem 1rem' }}>Gold Coins</th>
+                <th style={{ padding: '0.75rem 1rem' }}>Today's Campaign</th>
+                <th style={{ padding: '0.75rem 1rem' }}>Progress</th>
+                <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {kids.map((kid) => {
+                const prog = kidsProgress[kid.id] || { completed: 0, approved: 0, pending: 0, total: 0 };
+                const percent = prog.total > 0 ? Math.round((prog.completed / prog.total) * 100) : 0;
+                const level = Math.floor(kid.points / 100) + 1;
+                
+                // Status Determination
+                let statusLabel = 'No Quests';
+                let statusColor = 'var(--text-muted)';
+                let statusBg = 'rgba(255, 255, 255, 0.05)';
+                
+                if (prog.total > 0) {
+                  if (prog.approved === prog.total) {
+                    statusLabel = 'Campaign Complete! 🎉';
+                    statusColor = 'var(--theme-emerald)';
+                    statusBg = 'var(--theme-emerald-glow)';
+                  } else if (prog.pending > 0) {
+                    statusLabel = 'Pending Review ⏳';
+                    statusColor = 'var(--theme-amber)';
+                    statusBg = 'var(--theme-amber-glow)';
+                  } else if (prog.completed > 0) {
+                    statusLabel = 'In Progress ⚔️';
+                    statusColor = 'var(--accent, var(--theme-violet))';
+                    statusBg = 'var(--accent-glow, var(--theme-violet-glow))';
+                  } else {
+                    statusLabel = 'Not Started 💤';
+                    statusColor = 'var(--text-muted)';
+                    statusBg = 'rgba(255, 255, 255, 0.03)';
+                  }
+                }
+
+                return (
+                  <tr key={kid.id} className={`theme-${kid.color_theme}`} style={{ borderBottom: '1px solid var(--card-border)' }}>
+                    <td style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ fontSize: '1.75rem' }}>{kid.avatar}</span>
+                      <strong style={{ fontSize: '1rem' }}>{kid.name}</strong>
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Lvl {level}</span>
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--theme-amber)' }}>🪙 {kid.points}</span>
+                    </td>
+                    <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
+                      {prog.total > 0 ? (
+                        <span>{prog.completed}/{prog.total} Quests</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>None Scheduled</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '1rem', width: '200px' }}>
+                      {prog.total > 0 ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div className="progress-container" style={{ flex: 1, height: '6px' }}>
+                            <div className="progress-bar" style={{ width: `${percent}%`, backgroundColor: 'var(--accent)' }} />
+                          </div>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 600, minWidth: '30px' }}>{percent}%</span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      <span style={{
+                        padding: '0.25rem 0.6rem',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: statusColor,
+                        background: statusBg,
+                        border: `1px solid ${statusColor}33`
+                      }}>
+                        {statusLabel}
+                      </span>
+                    </td>
+                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                          onClick={() => handleOpenKidEdit(kid)}
+                        >
+                          Edit Profile
+                        </button>
+                        <button
+                          className="btn btn-primary"
+                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+                          onClick={() => handleOpenAdjustment(kid)}
+                        >
+                          <Coins size={12} /> Adjust Gold
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
