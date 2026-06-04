@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.2.0...v1.3.0) (2026-06-04)
+
+
+### Features
+
+* add kids progress table to parent dashboard ([8780cf3](https://github.com/mcasciato/casciato-family-chores/commit/8780cf32d6108b79f80214ecf0f9f1ddaef7b299))
+* add kids progress table to parent dashboard ([742c222](https://github.com/mcasciato/casciato-family-chores/commit/742c2226f432376a52e381e1359db5dbfb4143ae))
+
 ## [1.2.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.1.0...v1.2.0) (2026-06-02)
 
 
