@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.3.0...v1.4.0) (2026-06-05)
+
+
+### Features
+
+* add approve or reject all buttons ([e1f88a2](https://github.com/mcasciato/casciato-family-chores/commit/e1f88a2ab5fba5e36141e0924b6732fc7dba0810))
+* add approve or reject all buttons ([fa72e29](https://github.com/mcasciato/casciato-family-chores/commit/fa72e29f18ccc4166de4e4ad7b08d763d08f0dd3))
+
 ## [1.3.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.2.0...v1.3.0) (2026-06-04)
 
 
