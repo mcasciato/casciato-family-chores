@@ -158,6 +158,30 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
     }
   };
 
+  // Approve all chores
+  const handleApproveAllChores = async () => {
+    try {
+      const res = await fetch('/api/completions/approve-all', {
+        method: 'PUT',
+        headers: { 'x-parent-token': parentToken }
+      });
+      if (res.ok) {
+        // Exploding stars & coins confetti burst for kid approval!
+        confetti({
+          particleCount: 80,
+          spread: 50,
+          origin: { y: 0.5 },
+          colors: ['#f59e0b', '#10b981', '#fbbf24']
+        });
+
+        fetchQueues();
+        onReloadKids(); // Reload global list of kids
+      }
+    } catch (err) {
+      console.error('Error approving chores:', err);
+    }
+  };
+
   const handleOpenRejection = (id) => {
     setRejectionFeedback({ completionId: id, feedback: '' });
   };
@@ -182,6 +206,21 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
       }
     } catch (err) {
       console.error('Error rejecting chore:', err);
+    }
+  };
+
+  // Reject all chore completions
+  const handleRejectAllChores = async () => {
+    try {
+      const res = await fetch('/api/completions/reject-all', {
+        method: 'PUT',
+        headers: { 'x-parent-token': parentToken }
+      });
+      if (res.ok) {
+        fetchQueues();
+      }
+    } catch (err) {
+      console.error('Error rejecting all chores:', err);
     }
   };
 
@@ -485,7 +524,7 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
           </button>
         </div>
       </div>
-      
+
       {/* Kids Progress Table */}
       <div className="glass-panel" style={{ marginBottom: '2.5rem', padding: '1.5rem 2rem' }}>
         <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -509,12 +548,12 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                 const prog = kidsProgress[kid.id] || { completed: 0, approved: 0, pending: 0, total: 0 };
                 const percent = prog.total > 0 ? Math.round((prog.completed / prog.total) * 100) : 0;
                 const level = Math.floor(kid.points / 100) + 1;
-                
+
                 // Status Determination
                 let statusLabel = 'No Quests';
                 let statusColor = 'var(--text-muted)';
                 let statusBg = 'rgba(255, 255, 255, 0.05)';
-                
+
                 if (prog.total > 0) {
                   if (prog.approved === prog.total) {
                     statusLabel = 'Campaign Complete! 🎉';
@@ -659,17 +698,56 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {/* Chore Approvals Queue */}
           <div className="glass-card" style={{ padding: '1.75rem' }}>
-            <h3
+            <div
               style={{
-                fontSize: '1.25rem',
-                marginBottom: '1.25rem',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                gap: '0.5rem'
+                marginBottom: '1.25rem',
+                flexWrap: 'wrap',
+                gap: '1rem'
               }}
             >
-              ⚔️ Quest Verifications ({pendingCompletions.length})
-            </h3>
+              <h3
+                style={{
+                  fontSize: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  margin: 0
+                }}
+              >
+                ⚔️ Quest Verifications ({pendingCompletions.length})
+              </h3>
+              {pendingCompletions.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    className="btn btn-secondary"
+                    style={{
+                      padding: '0.4rem 0.85rem',
+                      fontSize: '0.85rem',
+                      borderColor: 'var(--theme-rose-border)',
+                      color: 'var(--theme-rose)'
+                    }}
+                    onClick={handleRejectAllChores}
+                  >
+                    <X size={14} /> Reject All ({pendingCompletions.length})
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    style={{
+                      padding: '0.4rem 0.85rem',
+                      fontSize: '0.85rem',
+                      background: 'var(--theme-emerald)',
+                      color: 'var(--text-dark)'
+                    }}
+                    onClick={handleApproveAllChores}
+                  >
+                    <Check size={14} /> Approve All ({pendingCompletions.length})
+                  </button>
+                </div>
+              )}
+            </div>
 
             {pendingCompletions.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', padding: '1rem 0' }}>
