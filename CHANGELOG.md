@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.5.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.4.0...v1.5.0) (2026-06-16)
+
+
+### Features
+
+* add expand capability to view available chores to table ([#20](https://github.com/mcasciato/casciato-family-chores/issues/20)) ([9b02040](https://github.com/mcasciato/casciato-family-chores/commit/9b02040911a21ecff19b4cbe5aab2728cf73095c))
+
+## [1.4.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.3.0...v1.4.0) (2026-06-05)
+
+
+### Features
+
+* add approve or reject all buttons ([e1f88a2](https://github.com/mcasciato/casciato-family-chores/commit/e1f88a2ab5fba5e36141e0924b6732fc7dba0810))
+* add approve or reject all buttons ([fa72e29](https://github.com/mcasciato/casciato-family-chores/commit/fa72e29f18ccc4166de4e4ad7b08d763d08f0dd3))
+
+## [1.3.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.2.0...v1.3.0) (2026-06-04)
+
+
+### Features
+
+* add kids progress table to parent dashboard ([8780cf3](https://github.com/mcasciato/casciato-family-chores/commit/8780cf32d6108b79f80214ecf0f9f1ddaef7b299))
+* add kids progress table to parent dashboard ([742c222](https://github.com/mcasciato/casciato-family-chores/commit/742c2226f432376a52e381e1359db5dbfb4143ae))
+
 ## [1.2.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.1.0...v1.2.0) (2026-06-02)
 
 

@@ -652,6 +652,42 @@ app.put(
   })
 );
 
+// approve all chore completions
+app.put(
+  '/api/completions/approve-all',
+  parentAuth,
+  asyncHandler(async (req, res) => {
+    const pending = await dbManager.all(
+      `
+    SELECT cc.id, cc.chore_id, cc.kid_id, c.points
+    FROM chore_completions cc
+    JOIN chores c ON cc.chore_id = c.id
+    WHERE cc.status = 'pending'
+    ORDER BY cc.completed_at ASC
+  `
+    );
+
+    await dbManager.transaction(async () => {
+      for (const completion of pending) {
+        // 1. Update completion record
+        await dbManager.run(
+          "UPDATE chore_completions SET status = 'approved', approved_at = ? WHERE id = ?",
+          [new Date().toISOString(), completion.id]
+        );
+        // 2. Add points to kid
+        const kid = await dbManager.get('SELECT points FROM kids WHERE id = ?', [completion.kid_id]);
+        const newPoints = kid.points + completion.points;
+        await dbManager.run('UPDATE kids SET points = ? WHERE id = ?', [
+          newPoints,
+          completion.kid_id
+        ]);
+      }
+    });
+
+    res.json({ success: true });
+  })
+);
+
 // Reject chore completion (sends feedback back)
 app.put(
   '/api/completions/:id/reject',
@@ -674,6 +710,35 @@ app.put(
       id
     ]);
     res.json({ success: true, completion: updatedCompletion });
+  })
+);
+
+// Reject all chore completions
+app.put(
+  '/api/completions/reject-all',
+  parentAuth,
+  asyncHandler(async (req, res) => {
+    const pending = await dbManager.all(
+      `
+    SELECT cc.id, cc.chore_id, cc.kid_id, c.points
+    FROM chore_completions cc
+    JOIN chores c ON cc.chore_id = c.id
+    WHERE cc.status = 'pending'
+    ORDER BY cc.completed_at ASC
+  `
+    );
+
+    await dbManager.transaction(async () => {
+      for (const completion of pending) {
+        // 1. Update completion record
+        await dbManager.run(
+          "UPDATE chore_completions SET status = 'rejected', approved_at = ? WHERE id = ?",
+          [new Date().toISOString(), completion.id]
+        );
+      }
+    });
+
+    res.json({ success: true });
   })
 );
 
