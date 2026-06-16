@@ -15,6 +15,15 @@ Welcome! This file acts as the repository-wide instructions and guidelines for a
 
 ---
 
+## Agent Personas
+
+When invoking agents or subagents, you can instruct them to load one of the following persona profiles located in `.github/agents/` to set their level of autonomy and quality checks:
+* **Junior Engineer**: [.github/agents/junior-engineer.md](file:///Users/michaelcasciato/Documents/dev/casciato-family-chores/.github/agents/junior-engineer.md) (Task execution, styling, test writing, highly constrained scope).
+* **Mid-Level Engineer**: [.github/agents/mid-engineer.md](file:///Users/michaelcasciato/Documents/dev/casciato-family-chores/.github/agents/mid-engineer.md) (Feature implementation, API connections, database queries).
+* **Senior Engineer / Architect**: [.github/agents/senior-engineer.md](file:///Users/michaelcasciato/Documents/dev/casciato-family-chores/.github/agents/senior-engineer.md) (Architecture planning, quality gating, reviews, migrations).
+
+---
+
 ## Coding Standards & Guidelines
 
 ### 1. General Principles
@@ -43,7 +52,23 @@ Welcome! This file acts as the repository-wide instructions and guidelines for a
 We maintain specialized agent skills and prompts in the `.github/skills/` directory.
 
 ### Conventional Commits Skill
-
 - **File**: [.github/skills/conventional-commits.md](file:///Users/michaelcasciato/Documents/dev/casciato-family-chores/.github/skills/conventional-commits.md)
 - **Purpose**: Guides the developer or AI agent on crafting proper Conventional Commit messages based on changes in the workspace.
 - **Usage**: When preparing to commit, ask the AI to run/read the Conventional Commits skill to draft the message.
+
+### Database Operations Skill
+- **File**: [.github/skills/db-operations.md](file:///Users/michaelcasciato/Documents/dev/casciato-family-chores/.github/skills/db-operations.md)
+- **Purpose**: Details the SQLite schema, query structures, and safe use of the database wrapper functions.
+
+### UI Development & Aesthetics Skill
+- **File**: [.github/skills/ui-development.md](file:///Users/michaelcasciato/Documents/dev/casciato-family-chores/.github/skills/ui-development.md)
+- **Purpose**: Explains styling rules (Vanilla CSS, HSL palettes, transitions, and touch-target sizing for Raspberry Pi displays).
+
+### Debugging & Troubleshooting Playbook
+- **File**: [.github/skills/debugging-playbook.md](file:///Users/michaelcasciato/Documents/dev/casciato-family-chores/.github/skills/debugging-playbook.md)
+- **Purpose**: Standardizes how agents inspect backend logs, query database state, and diagnose issues.
+
+### PR & Code Review Quality Checklist
+- **File**: [.github/skills/code-review.md](file:///Users/michaelcasciato/Documents/dev/casciato-family-chores/.github/skills/code-review.md)
+- **Purpose**: Provides a self-verification checklist for licensing headers, error-handling safety, and UI aesthetics.
+
