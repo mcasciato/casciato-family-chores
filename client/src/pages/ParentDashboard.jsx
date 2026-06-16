@@ -25,6 +25,8 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
   const [choresList, setChoresList] = useState([]);
   const [rewardsList, setRewardsList] = useState([]);
   const [kidsProgress, setKidsProgress] = useState({});
+  const [expandedKidId, setExpandedKidId] = useState(null);
+  const [kidsChores, setKidsChores] = useState({});
 
   // Modals & Forms State
   const [isChoreModalOpen, setIsChoreModalOpen] = useState(false);
@@ -85,19 +87,27 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
               const approved = chores.filter((c) => c.completion_status === 'approved').length;
               const pending = chores.filter((c) => c.completion_status === 'pending').length;
               const total = chores.length;
-              return { kidId: kid.id, completed, approved, pending, total };
+              return { kidId: kid.id, completed, approved, pending, total, chores };
             }
           } catch (err) {
             console.error(`Error fetching progress for kid ${kid.id}:`, err);
           }
-          return { kidId: kid.id, completed: 0, approved: 0, pending: 0, total: 0 };
+          return { kidId: kid.id, completed: 0, approved: 0, pending: 0, total: 0, chores: [] };
         })
       ).then((results) => {
         const progressMap = {};
+        const choresMap = {};
         results.forEach((r) => {
-          progressMap[r.kidId] = r;
+          progressMap[r.kidId] = {
+            completed: r.completed,
+            approved: r.approved,
+            pending: r.pending,
+            total: r.total
+          };
+          choresMap[r.kidId] = r.chores;
         });
         setKidsProgress(progressMap);
+        setKidsChores(choresMap);
       });
     }
   }, [kids, pendingCompletions]);
@@ -548,6 +558,8 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                 const prog = kidsProgress[kid.id] || { completed: 0, approved: 0, pending: 0, total: 0 };
                 const percent = prog.total > 0 ? Math.round((prog.completed / prog.total) * 100) : 0;
                 const level = Math.floor(kid.points / 100) + 1;
+                const isExpanded = expandedKidId === kid.id;
+                const chores = kidsChores[kid.id] || [];
 
                 // Status Determination
                 let statusLabel = 'No Quests';
@@ -575,68 +587,175 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
                 }
 
                 return (
-                  <tr key={kid.id} className={`theme-${kid.color_theme}`} style={{ borderBottom: '1px solid var(--card-border)' }}>
-                    <td style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ fontSize: '1.75rem' }}>{kid.avatar}</span>
-                      <strong style={{ fontSize: '1rem' }}>{kid.name}</strong>
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Lvl {level}</span>
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--theme-amber)' }}>🪙 {kid.points}</span>
-                    </td>
-                    <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
-                      {prog.total > 0 ? (
-                        <span>{prog.completed}/{prog.total} Quests</span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>None Scheduled</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '1rem', width: '200px' }}>
-                      {prog.total > 0 ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div className="progress-container" style={{ flex: 1, height: '6px' }}>
-                            <div className="progress-bar" style={{ width: `${percent}%`, backgroundColor: 'var(--accent)' }} />
+                  <React.Fragment key={kid.id}>
+                    <tr className={`theme-${kid.color_theme}`} style={{ borderBottom: '1px solid var(--card-border)' }}>
+                      <td 
+                        style={{ 
+                          padding: '1rem', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.5rem', 
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                        onClick={() => setExpandedKidId(isExpanded ? null : kid.id)}
+                      >
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          color: 'var(--text-muted)', 
+                          display: 'inline-block',
+                          width: '12px',
+                          transition: 'transform 0.2s ease', 
+                          transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' 
+                        }}>
+                          ▶
+                        </span>
+                        <span style={{ fontSize: '1.75rem' }}>{kid.avatar}</span>
+                        <strong style={{ fontSize: '1rem' }}>{kid.name}</strong>
+                      </td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Lvl {level}</span>
+                      </td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--theme-amber)' }}>🪙 {kid.points}</span>
+                      </td>
+                      <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
+                        {prog.total > 0 ? (
+                          <span>{prog.completed}/{prog.total} Quests</span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>None Scheduled</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '1rem', width: '200px' }}>
+                        {prog.total > 0 ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div className="progress-container" style={{ flex: 1, height: '6px' }}>
+                              <div className="progress-bar" style={{ width: `${percent}%`, backgroundColor: 'var(--accent)' }} />
+                            </div>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, minWidth: '30px' }}>{percent}%</span>
                           </div>
-                          <span style={{ fontSize: '0.8rem', fontWeight: 600, minWidth: '30px' }}>{percent}%</span>
+                        ) : (
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '6px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          color: statusColor,
+                          background: statusBg,
+                          border: `1px solid ${statusColor}33`
+                        }}>
+                          {statusLabel}
+                        </span>
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                            onClick={() => handleOpenKidEdit(kid)}
+                          >
+                            Edit Profile
+                          </button>
+                          <button
+                            className="btn btn-primary"
+                            style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+                            onClick={() => handleOpenAdjustment(kid)}
+                          >
+                            <Coins size={12} /> Adjust Gold
+                          </button>
                         </div>
-                      ) : (
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{
-                        padding: '0.25rem 0.6rem',
-                        borderRadius: '6px',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: statusColor,
-                        background: statusBg,
-                        border: `1px solid ${statusColor}33`
-                      }}>
-                        {statusLabel}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
-                          onClick={() => handleOpenKidEdit(kid)}
-                        >
-                          Edit Profile
-                        </button>
-                        <button
-                          className="btn btn-primary"
-                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
-                          onClick={() => handleOpenAdjustment(kid)}
-                        >
-                          <Coins size={12} /> Adjust Gold
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+
+                    {/* Expandable Quest List Sub-row */}
+                    <tr className={`theme-${kid.color_theme}`}>
+                      <td colSpan={7} style={{ padding: 0 }}>
+                        <div style={{
+                          maxHeight: isExpanded ? '500px' : '0px',
+                          overflow: 'hidden',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          background: 'rgba(0, 0, 0, 0.15)',
+                        }}>
+                          <div style={{ padding: '1.25rem 2.5rem' }}>
+                            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span>⚔️</span> Active Quests for Today
+                            </h4>
+                            {chores.length === 0 ? (
+                              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                                No chores scheduled for today.
+                              </p>
+                            ) : (
+                              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                {chores.map((chore) => {
+                                  let statusText = 'Not Started';
+                                  let statusBadgeColor = 'var(--text-muted)';
+                                  let statusBadgeBg = 'rgba(255, 255, 255, 0.05)';
+                                  if (chore.completion_status === 'approved') {
+                                    statusText = 'Approved';
+                                    statusBadgeColor = 'var(--theme-emerald)';
+                                    statusBadgeBg = 'var(--theme-emerald-glow)';
+                                  } else if (chore.completion_status === 'pending') {
+                                    statusText = 'Pending Approval';
+                                    statusBadgeColor = 'var(--theme-amber)';
+                                    statusBadgeBg = 'var(--theme-amber-glow)';
+                                  } else if (chore.completion_status === 'rejected') {
+                                    statusText = 'Rejected (Needs Redo)';
+                                    statusBadgeColor = 'var(--theme-rose)';
+                                    statusBadgeBg = 'rgba(244, 63, 94, 0.15)';
+                                  }
+
+                                  return (
+                                    <div 
+                                      key={chore.id} 
+                                      style={{
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        alignItems: 'center', 
+                                        padding: '0.6rem 1rem', 
+                                        background: 'rgba(255, 255, 255, 0.02)',
+                                        border: '1px solid var(--card-border)',
+                                        borderRadius: '8px',
+                                        fontSize: '0.85rem'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                        <strong style={{ color: 'var(--text-main)' }}>{chore.title}</strong>
+                                        {chore.description && (
+                                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                            {chore.description}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                                        <span style={{ color: 'var(--theme-amber)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                          🪙 {chore.points}
+                                        </span>
+                                        <span style={{
+                                          padding: '0.2rem 0.5rem',
+                                          borderRadius: '4px',
+                                          fontSize: '0.75rem',
+                                          fontWeight: 600,
+                                          color: statusBadgeColor,
+                                          background: statusBadgeBg,
+                                          border: `1px solid ${statusBadgeColor}22`
+                                        }}>
+                                          {statusText}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </React.Fragment>
                 );
               })}
             </tbody>
