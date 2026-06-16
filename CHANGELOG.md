@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.4.0...v1.5.0) (2026-06-16)
+
+
+### Features
+
+* add expand capability to view available chores to table ([#20](https://github.com/mcasciato/casciato-family-chores/issues/20)) ([9b02040](https://github.com/mcasciato/casciato-family-chores/commit/9b02040911a21ecff19b4cbe5aab2728cf73095c))
+
 ## [1.4.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.3.0...v1.4.0) (2026-06-05)
 
 
