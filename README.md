@@ -10,7 +10,7 @@ Built with a gorgeous glassmorphic dark-mode UI, it treats kids as "Heroes," cho
 
 - **Gamified Kids Dashboard**: Separate profile selection screen where kids view daily/weekly chores, click to submit them for verification, and shop for rewards.
 - **Guild Master Command (Parent View)**: PIN-protected parent portal to review pending approvals, create/modify chores, customize loot rewards, and manage coin balances.
-- **Adaptive Theme Accent**: Oliver, Luna, and Leo get customized theme overrides (Neon Violet, Warm Amber, Emerald Green) that dynamically dress the app interfaces when they log in.
+- **Adaptive Theme Accent**: Custom profiles get customized theme overrides (such as Neon Violet, Warm Amber, Emerald Green, Rose Pink, and Sky Blue) that dynamically dress the app interfaces when kids log in.
 - **Raspberry Pi Optimized**: Serverless single-file SQLite database with exceptionally low memory footprint (< 50MB RAM).
 - **Fully Responsive**: Styled with modular Vanilla CSS utilizing advanced glassmorphism overlays and haptic transition effects that look spectacular on iPads, tablets, mobile phones, and desktop screens.
 
@@ -29,23 +29,39 @@ Built with a gorgeous glassmorphic dark-mode UI, it treats kids as "Heroes," cho
 
 You can get ChoreQuest up and running on your local Mac/PC in minutes:
 
-1.  **Clone / Navigate** to the project directory:
-2.  **Make the setup script executable**:
+1.  **Make the setup script executable**:
     ```bash
     chmod +x setup.sh
     ```
-3.  **Run the automated setup**:
+2.  **Run the automated setup**:
     ```bash
     ./setup.sh
     ```
-    This script will verify your Node environment, install all backend packages, download frontend components, and compile the final optimized production assets.
-4.  **Start the app**:
-    ```bash
-    npm start
-    ```
-5.  Open your browser and navigate to:
-    - **Local URL**: `http://localhost:5001`
-    - **Local Network IP (e.g. tablet)**: `http://<YOUR-IP-ADDRESS>:5001`
+    This script verifies the Node.js environment, installs all backend and frontend dependencies, and builds the production static assets for the React frontend.
+3.  **Start the application**:
+    * **Production Mode** (runs the production build on port `5001`):
+      ```bash
+      npm start
+      ```
+      Open your browser to:
+      - Local: `http://localhost:5001`
+      - Local Network: `http://<YOUR-IP-ADDRESS>:5001`
+    * **Development Mode** (runs concurrent server and client environments with hot reloading):
+      ```bash
+      npm run dev
+      ```
+      This boots the Express backend on port `5001` and the Vite frontend on port `3000` (with API requests proxied automatically). Open your browser to:
+      - Local: `http://localhost:3000`
+      - Local Network: `http://<YOUR-IP-ADDRESS>:3000`
+
+---
+
+## 🧙 First-Time Setup Wizard
+
+Upon launching ChoreQuest for the first time, you will be greeted by the **Setup Wizard**:
+1. **Configure Guild Name**: Set the name of your family household.
+2. **Create Parent PIN**: Establish a 4-digit PIN for access to the Parent Command Center.
+3. **Add Initial Profile**: Set up the first Kid profile with their name, avatar, chosen color theme accent, and their own 4-digit PIN.
 
 ---
 
@@ -151,13 +167,10 @@ If you prefer a native Linux service without npm dependencies:
 
 ## 🛡️ PIN Security
 
-- **Switching to Parent Command Center** requires a 4-digit PIN.
-- Preset seed PINs:
-  - **Oliver**: `1111`
-  - **Luna**: `2222`
-  - **Leo**: `3333`
-  - **Generic Fallback**: `1234`
-- Parents can customize PIN codes for each child, add new children, or delete profiles in the **Heroes** tab in Parent Mode.
+- **Switching to Parent Command Center** requires a 4-digit PIN, which is defined during the Setup Wizard. If not configured or to use a system override, it checks the `PARENT_PIN` environment variable (defaults to `0510` if not set).
+- **Kid Profiles PIN**: Each profile requires a 4-digit PIN configured by the parent during profile creation or customization.
+  - If a kid profile PIN is omitted during creation, it defaults to a standard placeholder: `1234`.
+- Parents can customize PIN codes for each child, add new children, or delete profiles in the **Heroes** tab within the Parent Mode.
 
 ---
 
