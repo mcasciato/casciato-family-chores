@@ -32,7 +32,7 @@ jobs:
   deploy:
     name: Deploy App to Fly.io
     needs: release-please
-    if: ${{ always() && !cancelled() && !failed() && (needs.release-please.outputs.release_created == 'true' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
+    if: ${{ always() && !cancelled() && !failure() && (needs.release-please.outputs.release_created == 'true' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
