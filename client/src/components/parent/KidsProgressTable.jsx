@@ -153,12 +153,63 @@ export default function KidsProgressTable({
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No chores scheduled.</p>
                   ) : (
                     <div style={{ display: 'grid', gap: '0.4rem' }}>
-                      {chores.map((chore) => (
-                        <div key={chore.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.4rem 0.6rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid var(--card-border)' }}>
-                          <span>{chore.title}</span>
-                          <span style={{ fontWeight: 600 }}>🪙 {chore.points}</span>
-                        </div>
-                      ))}
+                      {chores.map((chore) => {
+                        let statusText = 'Not Started';
+                        let statusBadgeColor = 'var(--text-muted)';
+                        let statusBadgeBg = 'rgba(255, 255, 255, 0.05)';
+                        if (chore.completion_status === 'approved') {
+                          statusText = 'Approved';
+                          statusBadgeColor = 'var(--theme-emerald)';
+                          statusBadgeBg = 'var(--theme-emerald-glow)';
+                        } else if (chore.completion_status === 'pending') {
+                          statusText = 'Pending Approval';
+                          statusBadgeColor = 'var(--theme-amber)';
+                          statusBadgeBg = 'var(--theme-amber-glow)';
+                        } else if (chore.completion_status === 'rejected') {
+                          statusText = 'Rejected (Needs Redo)';
+                          statusBadgeColor = 'var(--theme-rose)';
+                          statusBadgeBg = 'rgba(244, 63, 94, 0.15)';
+                        }
+
+                        return (
+                          <div 
+                            key={chore.id} 
+                            style={{ 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              gap: '0.3rem', 
+                              padding: '0.6rem 0.75rem', 
+                              background: 'rgba(255,255,255,0.02)', 
+                              borderRadius: '8px', 
+                              border: '1px solid var(--card-border)',
+                              fontSize: '0.8rem' 
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                              <strong style={{ color: 'var(--text-main)', wordBreak: 'break-word' }}>{chore.title}</strong>
+                              <span style={{ color: 'var(--theme-amber)', fontWeight: 700, whiteSpace: 'nowrap' }}>🪙 {chore.points}</span>
+                            </div>
+                            {chore.description && (
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', wordBreak: 'break-word', marginTop: '-0.1rem' }}>
+                                {chore.description}
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '0.15rem' }}>
+                              <span style={{
+                                padding: '0.15rem 0.4rem',
+                                borderRadius: '4px',
+                                fontSize: '0.7rem',
+                                fontWeight: 600,
+                                color: statusBadgeColor,
+                                background: statusBadgeBg,
+                                border: `1px solid ${statusBadgeColor}22`
+                              }}>
+                                {statusText}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
