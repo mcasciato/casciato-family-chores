@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2](https://github.com/mcasciato/casciato-family-chores/compare/v1.6.1...v1.6.2) (2026-06-24)
+
+
+### Bug Fixes
+
+* **parent-dashboard:** display quest status and colors on mobile card view ([#25](https://github.com/mcasciato/casciato-family-chores/issues/25)) ([58d0d5a](https://github.com/mcasciato/casciato-family-chores/commit/58d0d5a855c53087ce7e7a500b43c8ffd81618f2))
+
 ## [1.5.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.4.0...v1.5.0) (2026-06-16)
 
 
