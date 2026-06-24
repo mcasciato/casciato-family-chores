@@ -32,7 +32,8 @@ jobs:
   deploy:
     name: Deploy App to Fly.io
     needs: release-please
-    if: ${{ always() && !cancelled() && !failure() && (needs.release-please.outputs.release_created == 'true' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
+    # Only run deploy on the tag push event, not on the release-please workflow_run event
+    if: ${{ always() && !cancelled() && !failure() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
