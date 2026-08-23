@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.7.0...v1.8.0) (2026-08-23)
+
+
+### Features
+
+* **theming:** implement dynamic family theme packs with non-violent avatars ([#29](https://github.com/mcasciato/casciato-family-chores/issues/29)) ([5288105](https://github.com/mcasciato/casciato-family-chores/commit/5288105db321b2fa280989e13f93d4cf5c705451))
+
 ## [1.7.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.6.2...v1.7.0) (2026-08-23)
 
 
