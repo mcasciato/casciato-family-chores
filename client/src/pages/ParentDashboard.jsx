@@ -1,13 +1,11 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (C) 2026 Michael Casciato
-
 import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   UserPlus,
   Sword,
   Gift,
-  Clock
+  Clock,
+  QrCode
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -23,9 +21,12 @@ import ChoreModal from '../components/parent/Modals/ChoreModal';
 import RewardModal from '../components/parent/Modals/RewardModal';
 import AdjustmentModal from '../components/parent/Modals/AdjustmentModal';
 import KidEditModal from '../components/parent/Modals/KidEditModal';
+import FamilyPairingModal from '../components/pairing/FamilyPairingModal';
 
-export default function ParentDashboard({ kids, parentToken, onBackToProfiles, onReloadKids }) {
+export default function ParentDashboard({ kids, parentToken, householdId, guildName, onBackToProfiles, onReloadKids }) {
   const [activeTab, setActiveTab] = useState('approvals'); // approvals, chores, rewards, kids
+  const [isPairingModalOpen, setIsPairingModalOpen] = useState(false);
+
   const [pendingCompletions, setPendingCompletions] = useState([]);
   const [pendingRedemptions, setPendingRedemptions] = useState([]);
   const [choresList, setChoresList] = useState([]);
@@ -469,9 +470,18 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
             </div>
           </div>
 
-          <button className="btn btn-secondary" onClick={onBackToProfiles}>
-            Exit Parent Mode
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button
+              className="btn btn-outline"
+              onClick={() => setIsPairingModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <QrCode size={16} /> Link Devices &amp; Backup
+            </button>
+            <button className="btn btn-secondary" onClick={onBackToProfiles}>
+              Exit Parent Mode
+            </button>
+          </div>
         </div>
       </div>
 
@@ -601,6 +611,14 @@ export default function ParentDashboard({ kids, parentToken, onBackToProfiles, o
         kid={selectedKidForEdit}
         editError={editError}
         onSubmit={handleKidEditSubmit}
+      />
+
+      <FamilyPairingModal
+        isOpen={isPairingModalOpen}
+        onClose={() => setIsPairingModalOpen(false)}
+        householdId={householdId}
+        guildName={guildName}
+        parentToken={parentToken}
       />
     </div>
   );

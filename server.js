@@ -63,6 +63,42 @@ const clearFailedAttempts = (req) => {
   delete ipFailedAttempts[ip];
 };
 
+// Household Context Middleware: extracts household from x-household-id or x-device-token
+const householdContext = async (req, res, next) => {
+  try {
+    let householdId = req.headers['x-household-id'];
+    const deviceToken = req.headers['x-device-token'];
+
+    if (deviceToken) {
+      const device = await dbManager.get(
+        'SELECT token, household_id, role, device_name FROM devices WHERE token = ?',
+        [deviceToken]
+      );
+      if (device) {
+        householdId = device.household_id;
+        req.device = device;
+        // Non-blocking update of last seen
+        dbManager
+          .run('UPDATE devices SET last_seen_at = ? WHERE token = ?', [new Date().toISOString(), deviceToken])
+          .catch(() => {});
+      }
+    }
+
+    // Fallback: If no header is present, check if there is exactly 1 household in DB (legacy/standalone single-user mode)
+    if (!householdId) {
+      const singleHousehold = await dbManager.get('SELECT id FROM households LIMIT 1');
+      if (singleHousehold) {
+        householdId = singleHousehold.id;
+      }
+    }
+
+    req.householdId = householdId;
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
 const parentAuth = (req, res, next) => {
   const token = req.headers['x-parent-token'];
   if (
@@ -74,6 +110,12 @@ const parentAuth = (req, res, next) => {
       .status(401)
       .json({ error: 'Unauthorized. Parent Command session expired or invalid.' });
   }
+
+  // Verify session belongs to active household if specified
+  if (req.householdId && activeParentSessions[token].householdId && activeParentSessions[token].householdId !== req.householdId) {
+    return res.status(403).json({ error: 'Parent token does not match active household.' });
+  }
+
   // Refresh session on active request
   activeParentSessions[token].expiresAt = Date.now() + 2 * 60 * 60 * 1000;
   next();
@@ -85,6 +127,7 @@ const PORT = process.env.PORT || 5001;
 // Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(householdContext);
 
 // Serve static files from Vite build in production
 const clientBuildPath = path.join(__dirname, 'client', 'dist');
@@ -95,75 +138,349 @@ const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-// Setup & Config endpoints
+// ==========================================
+// 0. HOUSEHOLD & PAIRING ENDPOINTS
+// ==========================================
+
+// Setup & Config status
 app.get(
   '/api/setup-status',
   asyncHandler(async (req, res) => {
-    const kidsCount = await dbManager.get('SELECT COUNT(*) as count FROM kids');
-    const guildNameSetting = await dbManager.get(
-      "SELECT value FROM settings WHERE key = 'guild_name'"
-    );
-    const initialized = kidsCount.count > 0 || !!guildNameSetting;
-    res.json({ initialized });
+    let household = null;
+    let kidsCount = 0;
+
+    if (req.householdId) {
+      household = await dbManager.get('SELECT id, name FROM households WHERE id = ?', [
+        req.householdId
+      ]);
+      if (household) {
+        const countRow = await dbManager.get(
+          'SELECT COUNT(*) as count FROM kids WHERE household_id = ?',
+          [req.householdId]
+        );
+        kidsCount = countRow ? countRow.count : 0;
+      }
+    }
+
+    if (!household) {
+      const fallbackHousehold = await dbManager.get('SELECT id, name FROM households LIMIT 1');
+      if (fallbackHousehold) {
+        household = fallbackHousehold;
+        const countRow = await dbManager.get(
+          'SELECT COUNT(*) as count FROM kids WHERE household_id = ?',
+          [household.id]
+        );
+        kidsCount = countRow ? countRow.count : 0;
+      }
+    }
+
+    if (household && kidsCount > 0) {
+      res.json({
+        initialized: true,
+        householdId: household.id,
+        guildName: household.name
+      });
+    } else {
+      res.json({
+        initialized: false,
+        householdId: null,
+        guildName: 'ChoreQuest'
+      });
+    }
   })
 );
 
+// Create new Household (First-time or additional household)
 app.post(
   '/api/setup',
   asyncHandler(async (req, res) => {
-    const kidsCount = await dbManager.get('SELECT COUNT(*) as count FROM kids');
-    const guildNameSetting = await dbManager.get(
-      "SELECT value FROM settings WHERE key = 'guild_name'"
-    );
-    if (kidsCount.count > 0 || !!guildNameSetting) {
-      return res.status(400).json({ error: 'App has already been initialized.' });
-    }
-
-    const { guild_name, parent_pin, kid } = req.body;
+    const { guild_name, parent_pin, kid, device_name } = req.body;
     if (!guild_name || !parent_pin || !kid || !kid.name || !kid.avatar) {
       return res
         .status(400)
-        .json({ error: 'Guild name, parent PIN, and initial kid profile are required.' });
+        .json({ error: 'Guild name, parent PIN, and initial hero profile are required.' });
     }
 
+    const householdId = crypto.randomUUID();
+    const { hash: parentHash, salt: parentSalt } = dbManager.hashPin(parent_pin);
+    const recoveryKey = dbManager.generateRecoveryKey();
+    const createdAt = new Date().toISOString();
+
     await dbManager.transaction(async () => {
-      // Store settings
-      await dbManager.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('guild_name', ?)", [
-        guild_name
-      ]);
-
-      // Hash parent pin
-      const { hash: parentHash, salt: parentSalt } = dbManager.hashPin(parent_pin);
+      // 1. Insert household
       await dbManager.run(
-        "INSERT OR REPLACE INTO settings (key, value) VALUES ('parent_pin_hash', ?)",
-        [parentHash]
-      );
-      await dbManager.run(
-        "INSERT OR REPLACE INTO settings (key, value) VALUES ('parent_pin_salt', ?)",
-        [parentSalt]
+        'INSERT INTO households (id, name, parent_pin_hash, parent_pin_salt, recovery_key, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [householdId, guild_name.trim(), parentHash, parentSalt, recoveryKey, createdAt]
       );
 
-      // Create first kid profile
+      // 2. Store settings
+      await dbManager.run(
+        "INSERT OR REPLACE INTO settings (household_id, key, value) VALUES (?, 'guild_name', ?)",
+        [householdId, guild_name.trim()]
+      );
+
+      // 3. Create initial hero
       const { hash: kidHash, salt: kidSalt } = dbManager.hashPin(kid.pin || '1234');
       await dbManager.run(
-        'INSERT INTO kids (name, avatar, color_theme, pin_hash, pin_salt) VALUES (?, ?, ?, ?, ?)',
-        [kid.name, kid.avatar, kid.color_theme || 'purple', kidHash, kidSalt]
+        'INSERT INTO kids (household_id, name, avatar, color_theme, pin_hash, pin_salt) VALUES (?, ?, ?, ?, ?, ?)',
+        [householdId, kid.name.trim(), kid.avatar, kid.color_theme || 'purple', kidHash, kidSalt]
       );
+
+      // 4. Seed default quests and rewards for this family
+      await dbManager.seedHouseholdDefaults(householdId);
     });
 
-    res.status(201).json({ success: true });
+    // 5. Generate device token for creator device (parent role)
+    const deviceToken = crypto.randomBytes(24).toString('hex');
+    await dbManager.run(
+      'INSERT INTO devices (token, household_id, role, device_name, last_seen_at, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [deviceToken, householdId, 'parent', device_name || 'Master Parent Device', new Date().toISOString(), new Date().toISOString()]
+    );
+
+    // 6. Generate active parent session token
+    const parentToken = crypto.randomBytes(16).toString('hex');
+    activeParentSessions[parentToken] = {
+      householdId,
+      expiresAt: Date.now() + 2 * 60 * 60 * 1000
+    };
+
+    res.status(201).json({
+      success: true,
+      householdId,
+      deviceToken,
+      parentToken,
+      recoveryKey,
+      role: 'parent',
+      guildName: guild_name.trim()
+    });
+  })
+);
+
+// Create short-lived pairing code & QR payload (Protected by Parent Auth)
+app.post(
+  '/api/household/pair/create-code',
+  parentAuth,
+  asyncHandler(async (req, res) => {
+    const { role = 'kid' } = req.body;
+    const pairingRole = role === 'parent' ? 'parent' : 'kid';
+    const code = dbManager.generatePairingCode();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 minutes ISO datetime
+    const createdAt = new Date().toISOString();
+
+    await dbManager.run(
+      'INSERT OR REPLACE INTO pairing_codes (code, household_id, role, expires_at, created_at) VALUES (?, ?, ?, ?, ?)',
+      [code, req.householdId, pairingRole, expiresAt, createdAt]
+    );
+
+    const qrPayload = JSON.stringify({
+      v: 1,
+      hid: req.householdId,
+      code: code,
+      role: pairingRole,
+      exp: expiresAt
+    });
+
+    res.json({
+      code,
+      role: pairingRole,
+      expiresAt,
+      qrPayload,
+      householdId: req.householdId
+    });
+  })
+);
+
+// Join existing household using pairing code or scanned QR payload
+app.post(
+  '/api/household/pair/join',
+  asyncHandler(async (req, res) => {
+    let { code, qr_payload, device_name } = req.body;
+
+    if (qr_payload) {
+      try {
+        const parsed = typeof qr_payload === 'string' ? JSON.parse(qr_payload) : qr_payload;
+        if (parsed.code) code = parsed.code;
+      } catch (e) {
+        // payload might just be the raw code string
+        if (!code) code = qr_payload;
+      }
+    }
+
+    if (!code) {
+      return res.status(400).json({ error: 'Pairing code or QR code payload is required.' });
+    }
+
+    const cleanCode = code.trim().toUpperCase();
+    const pairing = await dbManager.get(
+      'SELECT * FROM pairing_codes WHERE code = ? AND expires_at > ?',
+      [cleanCode, new Date().toISOString()]
+    );
+
+    if (!pairing) {
+      return res.status(400).json({
+        error: 'Invalid or expired pairing code. Please generate a fresh code on the parent device.'
+      });
+    }
+
+    const household = await dbManager.get('SELECT id, name FROM households WHERE id = ?', [
+      pairing.household_id
+    ]);
+
+    if (!household) {
+      return res.status(404).json({ error: 'Household not found.' });
+    }
+
+    const deviceToken = crypto.randomBytes(24).toString('hex');
+    await dbManager.run(
+      'INSERT INTO devices (token, household_id, role, device_name, last_seen_at, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        deviceToken,
+        household.id,
+        pairing.role,
+        device_name || `${pairing.role === 'parent' ? 'Co-Parent' : 'Hero'} Device`,
+        new Date().toISOString(),
+        new Date().toISOString()
+      ]
+    );
+
+    res.json({
+      success: true,
+      householdId: household.id,
+      deviceToken,
+      role: pairing.role,
+      guildName: household.name
+    });
+  })
+);
+
+// Recover household access via 12-word recovery phrase and Parent PIN
+app.post(
+  '/api/household/recover',
+  rateLimiter,
+  asyncHandler(async (req, res) => {
+    const { recovery_key, parent_pin, device_name } = req.body;
+    if (!recovery_key || !parent_pin) {
+      return res.status(400).json({ error: 'Recovery phrase and Parent PIN are required.' });
+    }
+
+    const cleanKey = recovery_key.trim().toLowerCase();
+    const household = await dbManager.get(
+      'SELECT * FROM households WHERE LOWER(recovery_key) = ?',
+      [cleanKey]
+    );
+
+    if (!household) {
+      registerFailedAttempt(req);
+      return res.status(404).json({ error: 'Recovery phrase not recognized.' });
+    }
+
+    const { hash } = dbManager.hashPin(parent_pin, household.parent_pin_salt);
+    if (hash !== household.parent_pin_hash) {
+      registerFailedAttempt(req);
+      return res.status(401).json({ error: 'Incorrect Parent PIN.' });
+    }
+
+    clearFailedAttempts(req);
+
+    const deviceToken = crypto.randomBytes(24).toString('hex');
+    await dbManager.run(
+      'INSERT INTO devices (token, household_id, role, device_name, last_seen_at, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        deviceToken,
+        household.id,
+        'parent',
+        device_name || 'Restored Parent Device',
+        new Date().toISOString(),
+        new Date().toISOString()
+      ]
+    );
+
+    const parentToken = crypto.randomBytes(16).toString('hex');
+    activeParentSessions[parentToken] = {
+      householdId: household.id,
+      expiresAt: Date.now() + 2 * 60 * 60 * 1000
+    };
+
+    res.json({
+      success: true,
+      householdId: household.id,
+      deviceToken,
+      parentToken,
+      role: 'parent',
+      guildName: household.name
+    });
+  })
+);
+
+// List linked devices (Protected by Parent Auth)
+app.get(
+  '/api/household/devices',
+  parentAuth,
+  asyncHandler(async (req, res) => {
+    const devices = await dbManager.all(
+      'SELECT token, role, device_name, last_seen_at, created_at FROM devices WHERE household_id = ? ORDER BY last_seen_at DESC',
+      [req.householdId]
+    );
+    res.json(devices);
+  })
+);
+
+// Revoke a linked device (Protected by Parent Auth)
+app.delete(
+  '/api/household/devices/:token',
+  parentAuth,
+  asyncHandler(async (req, res) => {
+    const { token } = req.params;
+    const result = await dbManager.run(
+      'DELETE FROM devices WHERE token = ? AND household_id = ?',
+      [token, req.householdId]
+    );
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Device not found.' });
+    }
+    res.json({ success: true, message: 'Device unlinked.' });
+  })
+);
+
+// Get Recovery Kit details (Protected by Parent Auth)
+app.get(
+  '/api/household/recovery-kit',
+  parentAuth,
+  asyncHandler(async (req, res) => {
+    const household = await dbManager.get(
+      'SELECT id, name, recovery_key, created_at FROM households WHERE id = ?',
+      [req.householdId]
+    );
+    if (!household) {
+      return res.status(404).json({ error: 'Household not found.' });
+    }
+
+    const qrRecoveryPayload = JSON.stringify({
+      v: 1,
+      type: 'recovery',
+      hid: household.id,
+      key: household.recovery_key
+    });
+
+    res.json({
+      householdId: household.id,
+      guildName: household.name,
+      recoveryKey: household.recovery_key,
+      createdAt: household.created_at,
+      qrRecoveryPayload
+    });
   })
 );
 
 app.get(
   '/api/config',
   asyncHandler(async (req, res) => {
-    const guildNameSetting = await dbManager.get(
-      "SELECT value FROM settings WHERE key = 'guild_name'"
-    );
-    res.json({
-      guild_name: guildNameSetting ? guildNameSetting.value : 'ChoreQuest'
-    });
+    let guildName = 'ChoreQuest';
+    if (req.householdId) {
+      const household = await dbManager.get('SELECT name FROM households WHERE id = ?', [req.householdId]);
+      if (household) guildName = household.name;
+    }
+    res.json({ guild_name: guildName });
   })
 );
 
@@ -171,13 +488,18 @@ app.get(
 // 1. KIDS API ENDPOINTS
 // ==========================================
 
-// Get all kids
+// Get all kids for active household
 app.get(
   '/api/kids',
   asyncHandler(async (req, res) => {
-    const kids = await dbManager.all(
-      'SELECT id, name, avatar, points, color_theme FROM kids ORDER BY name ASC'
-    );
+    const kids = req.householdId
+      ? await dbManager.all(
+          'SELECT id, name, avatar, points, color_theme FROM kids WHERE household_id = ? ORDER BY name ASC',
+          [req.householdId]
+        )
+      : await dbManager.all(
+          'SELECT id, name, avatar, points, color_theme FROM kids ORDER BY name ASC'
+        );
     res.json(kids);
   })
 );
@@ -189,13 +511,12 @@ app.get(
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const kid = await dbManager.get(
-      'SELECT id, name, avatar, points, color_theme FROM kids WHERE id = ?',
-      [id]
+      'SELECT id, name, avatar, points, color_theme FROM kids WHERE id = ? AND household_id = ?',
+      [id, req.householdId]
     );
     if (!kid) {
       return res.status(404).json({ error: 'Kid profile not found.' });
     }
-    // Return empty string for pin so frontend starts with an empty/masked input
     kid.pin = '';
     res.json(kid);
   })
@@ -210,13 +531,12 @@ app.post(
       return res.status(400).json({ error: 'Name and avatar are required.' });
     }
 
-    // Hash the provided pin or fallback to a standard non-sensitive placeholder '1234'
     const pinToHash = pin || '1234';
     const { hash, salt } = dbManager.hashPin(pinToHash);
 
     const result = await dbManager.run(
-      'INSERT INTO kids (name, avatar, color_theme, pin_hash, pin_salt) VALUES (?, ?, ?, ?, ?)',
-      [name, avatar, color_theme || 'purple', hash, salt]
+      'INSERT INTO kids (household_id, name, avatar, color_theme, pin_hash, pin_salt) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.householdId, name, avatar, color_theme || 'purple', hash, salt]
     );
 
     const newKid = await dbManager.get(
@@ -235,7 +555,10 @@ app.put(
     const { id } = req.params;
     const { name, avatar, color_theme, pin, points } = req.body;
 
-    const kid = await dbManager.get('SELECT * FROM kids WHERE id = ?', [id]);
+    const kid = await dbManager.get('SELECT * FROM kids WHERE id = ? AND household_id = ?', [
+      id,
+      req.householdId
+    ]);
     if (!kid) {
       return res.status(404).json({ error: 'Kid profile not found.' });
     }
@@ -255,8 +578,8 @@ app.put(
     }
 
     await dbManager.run(
-      'UPDATE kids SET name = ?, avatar = ?, color_theme = ?, pin_hash = ?, pin_salt = ?, points = ? WHERE id = ?',
-      [updatedName, updatedAvatar, updatedTheme, updatedHash, updatedSalt, updatedPoints, id]
+      'UPDATE kids SET name = ?, avatar = ?, color_theme = ?, pin_hash = ?, pin_salt = ?, points = ? WHERE id = ? AND household_id = ?',
+      [updatedName, updatedAvatar, updatedTheme, updatedHash, updatedSalt, updatedPoints, id, req.householdId]
     );
 
     const updatedKid = await dbManager.get(
@@ -292,30 +615,42 @@ app.post(
   })
 );
 
-// Verify Parent PIN (against SQLite settings table or master environment/fallback PIN)
+// Verify Parent PIN (against household or settings table)
 app.post(
   '/api/verify-parent-pin',
   rateLimiter,
   asyncHandler(async (req, res) => {
     const { pin } = req.body;
 
-    const dbHash = await dbManager.get("SELECT value FROM settings WHERE key = 'parent_pin_hash'");
-    const dbSalt = await dbManager.get("SELECT value FROM settings WHERE key = 'parent_pin_salt'");
+    let household = null;
+    if (req.householdId) {
+      household = await dbManager.get(
+        'SELECT id, parent_pin_hash, parent_pin_salt FROM households WHERE id = ?',
+        [req.householdId]
+      );
+    }
 
     let verified = false;
-    if (dbHash && dbSalt) {
-      const { hash } = dbManager.hashPin(pin || '', dbSalt.value);
-      verified = hash === dbHash.value;
+    if (household && household.parent_pin_hash && household.parent_pin_salt) {
+      const { hash } = dbManager.hashPin(pin || '', household.parent_pin_salt);
+      verified = hash === household.parent_pin_hash;
     } else {
-      const parentMasterPin = process.env.PARENT_PIN || '0510';
-      verified = pin === parentMasterPin;
+      const dbHash = await dbManager.get("SELECT value FROM settings WHERE key = 'parent_pin_hash'");
+      const dbSalt = await dbManager.get("SELECT value FROM settings WHERE key = 'parent_pin_salt'");
+      if (dbHash && dbSalt) {
+        const { hash } = dbManager.hashPin(pin || '', dbSalt.value);
+        verified = hash === dbHash.value;
+      } else {
+        const parentMasterPin = process.env.PARENT_PIN || '0510';
+        verified = pin === parentMasterPin;
+      }
     }
 
     if (verified) {
       clearFailedAttempts(req);
-      // Generate secure session token
       const token = crypto.randomBytes(16).toString('hex');
       activeParentSessions[token] = {
+        householdId: req.householdId || (household ? household.id : null),
         expiresAt: Date.now() + 2 * 60 * 60 * 1000 // 2 hours
       };
       res.json({ success: true, token });
@@ -332,7 +667,10 @@ app.delete(
   parentAuth,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const result = await dbManager.run('DELETE FROM kids WHERE id = ?', [id]);
+    const result = await dbManager.run(
+      'DELETE FROM kids WHERE id = ? AND household_id = ?',
+      [id, req.householdId]
+    );
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Kid profile not found.' });
     }
@@ -348,12 +686,22 @@ app.delete(
 app.get(
   '/api/chores',
   asyncHandler(async (req, res) => {
-    const chores = await dbManager.all(`
-    SELECT c.*, k.name as assigned_to_name, k.avatar as assigned_to_avatar
-    FROM chores c
-    LEFT JOIN kids k ON c.assigned_to = k.id
-    WHERE c.is_active = 1
-  `);
+    const chores = req.householdId
+      ? await dbManager.all(
+          `
+        SELECT c.*, k.name as assigned_to_name, k.avatar as assigned_to_avatar
+        FROM chores c
+        LEFT JOIN kids k ON c.assigned_to = k.id
+        WHERE c.household_id = ? AND c.is_active = 1
+      `,
+          [req.householdId]
+        )
+      : await dbManager.all(`
+        SELECT c.*, k.name as assigned_to_name, k.avatar as assigned_to_avatar
+        FROM chores c
+        LEFT JOIN kids k ON c.assigned_to = k.id
+        WHERE c.is_active = 1
+      `);
     res.json(chores);
   })
 );
@@ -369,8 +717,9 @@ app.post(
     }
 
     const result = await dbManager.run(
-      'INSERT INTO chores (title, description, points, schedule_type, schedule_days, assigned_to) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO chores (household_id, title, description, points, schedule_type, schedule_days, assigned_to) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [
+        req.householdId,
         title,
         description || '',
         points,
@@ -394,7 +743,10 @@ app.put(
     const { title, description, points, schedule_type, schedule_days, assigned_to, is_active } =
       req.body;
 
-    const chore = await dbManager.get('SELECT * FROM chores WHERE id = ?', [id]);
+    const chore = await dbManager.get(
+      'SELECT * FROM chores WHERE id = ? AND household_id = ?',
+      [id, req.householdId]
+    );
     if (!chore) {
       return res.status(404).json({ error: 'Chore not found.' });
     }
@@ -408,7 +760,7 @@ app.put(
     const updatedActive = is_active !== undefined ? is_active : chore.is_active;
 
     await dbManager.run(
-      'UPDATE chores SET title = ?, description = ?, points = ?, schedule_type = ?, schedule_days = ?, assigned_to = ?, is_active = ? WHERE id = ?',
+      'UPDATE chores SET title = ?, description = ?, points = ?, schedule_type = ?, schedule_days = ?, assigned_to = ?, is_active = ? WHERE id = ? AND household_id = ?',
       [
         updatedTitle,
         updatedDesc,
@@ -417,7 +769,8 @@ app.put(
         updatedDays,
         updatedAssigned,
         updatedActive,
-        id
+        id,
+        req.householdId
       ]
     );
 
@@ -432,8 +785,10 @@ app.delete(
   parentAuth,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    // Let's do a hard delete to keep database clean
-    const result = await dbManager.run('DELETE FROM chores WHERE id = ?', [id]);
+    const result = await dbManager.run(
+      'DELETE FROM chores WHERE id = ? AND household_id = ?',
+      [id, req.householdId]
+    );
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Chore not found.' });
     }
@@ -441,37 +796,38 @@ app.delete(
   })
 );
 
-// Get all active chores for a kid on a specific date, matching completions
+// Get all active chores for a kid on a specific date
 app.get(
   '/api/chores/daily/:kidId/:date',
   asyncHandler(async (req, res) => {
     const { kidId, date } = req.params; // YYYY-MM-DD
-
-    // Parse weekday index (0-6, where 0 is Sunday)
     const dateObj = new Date(date + 'T12:00:00');
-    const dayOfWeek = dateObj.getDay(); // 0-6
+    const dayOfWeek = dateObj.getDay();
 
-    // 1. Get all active chores that are either assigned to this kid OR assigned to all (NULL)
-    const allChores = await dbManager.all(
-      `
-    SELECT c.*, k.name as assigned_to_name, k.avatar as assigned_to_avatar
-    FROM chores c
-    LEFT JOIN kids k ON c.assigned_to = k.id
-    WHERE c.is_active = 1 AND (c.assigned_to IS NULL OR c.assigned_to = ?)
-  `,
-      [kidId]
-    );
+    const allChores = req.householdId
+      ? await dbManager.all(
+          `
+        SELECT c.*, k.name as assigned_to_name, k.avatar as assigned_to_avatar
+        FROM chores c
+        LEFT JOIN kids k ON c.assigned_to = k.id
+        WHERE c.household_id = ? AND c.is_active = 1 AND (c.assigned_to IS NULL OR c.assigned_to = ?)
+      `,
+          [req.householdId, kidId]
+        )
+      : await dbManager.all(
+          `
+        SELECT c.*, k.name as assigned_to_name, k.avatar as assigned_to_avatar
+        FROM chores c
+        LEFT JOIN kids k ON c.assigned_to = k.id
+        WHERE c.is_active = 1 AND (c.assigned_to IS NULL OR c.assigned_to = ?)
+      `,
+          [kidId]
+        );
 
-    // 2. Filter chores by their scheduling schedule
     const filteredChores = allChores.filter((chore) => {
       if (chore.schedule_type === 'daily') return true;
-      if (chore.schedule_type === 'weekly') {
-        // For simple weekly chores, we show them every day, but they can only be completed once per calendar week
-        // (or we can let the child check it off on any day of the week). Let's return true, and the UI can show if it has been completed this week.
-        return true;
-      }
+      if (chore.schedule_type === 'weekly') return true;
       if (chore.schedule_type === 'alternate') {
-        // "Every other day" schedule calculated from a fixed reference date
         const refDate = new Date('2026-01-01T12:00:00');
         const diffTime = Math.abs(dateObj - refDate);
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -479,9 +835,6 @@ app.get(
         return isOffset ? diffDays % 2 !== 0 : diffDays % 2 === 0;
       }
       if (chore.schedule_type === 'custom') {
-        // schedule_days is a comma separated string of day indices, e.g. '1,3,5' (Mon, Wed, Fri)
-        // Note: standard JS getDay() is 0 (Sunday) to 6 (Saturday).
-        // Let's store weekday mappings in schedule_days: 0 (Sun), 1 (Mon), 2 (Tue), 3 (Wed), 4 (Thu), 5 (Fri), 6 (Sat)
         if (!chore.schedule_days) return false;
         const activeDays = chore.schedule_days.split(',');
         return activeDays.includes(dayOfWeek.toString());
@@ -489,18 +842,14 @@ app.get(
       return false;
     });
 
-    // 3. Attach completion status for each of the selected chores for this specific kid and date
     const finalChores = [];
     for (const chore of filteredChores) {
       let completion = null;
       if (chore.schedule_type === 'weekly') {
-        // Find any completion within the same calendar week of the target date
-        // For simplicity in SQLite, let's look for completions in the last 7 days, or we can find completion in the current YYYY-MM-DD's week.
-        // Let's get the start and end of week date strings.
         const startOfWeek = new Date(dateObj);
-        startOfWeek.setDate(dateObj.getDate() - dayOfWeek); // Sunday
+        startOfWeek.setDate(dateObj.getDate() - dayOfWeek);
         const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
 
         const pad = (n) => n.toString().padStart(2, '0');
         const startStr = `${startOfWeek.getFullYear()}-${pad(startOfWeek.getMonth() + 1)}-${pad(startOfWeek.getDate())}`;
@@ -508,19 +857,18 @@ app.get(
 
         completion = await dbManager.get(
           `
-        SELECT * FROM chore_completions 
-        WHERE chore_id = ? AND kid_id = ? AND completed_date BETWEEN ? AND ?
-        ORDER BY completed_at DESC LIMIT 1
-      `,
+          SELECT * FROM chore_completions 
+          WHERE chore_id = ? AND kid_id = ? AND completed_date BETWEEN ? AND ?
+          ORDER BY completed_at DESC LIMIT 1
+        `,
           [chore.id, kidId, startStr, endStr]
         );
       } else {
-        // Daily or Custom schedule - matches specific completed_date
         completion = await dbManager.get(
           `
-        SELECT * FROM chore_completions 
-        WHERE chore_id = ? AND kid_id = ? AND completed_date = ?
-      `,
+          SELECT * FROM chore_completions 
+          WHERE chore_id = ? AND kid_id = ? AND completed_date = ?
+        `,
           [chore.id, kidId, date]
         );
       }
@@ -542,7 +890,7 @@ app.get(
 // 3. CHORE COMPLETIONS API
 // ==========================================
 
-// Log a chore completion (Submits for approval)
+// Log a chore completion
 app.post(
   '/api/completions',
   asyncHandler(async (req, res) => {
@@ -551,14 +899,12 @@ app.post(
       return res.status(400).json({ error: 'Chore ID, Kid ID, and completed date are required.' });
     }
 
-    // Check if completion already exists for daily/custom
     const existing = await dbManager.get(
       'SELECT * FROM chore_completions WHERE chore_id = ? AND kid_id = ? AND completed_date = ?',
       [chore_id, kid_id, completed_date]
     );
 
     if (existing) {
-      // If it was rejected, we allow logging again (resubmit). If pending or approved, we shouldn't overwrite.
       if (existing.status === 'approved') {
         return res
           .status(400)
@@ -576,8 +922,8 @@ app.post(
     }
 
     const result = await dbManager.run(
-      "INSERT INTO chore_completions (chore_id, kid_id, completed_date, status, completed_at) VALUES (?, ?, ?, 'pending', ?)",
-      [chore_id, kid_id, completed_date, new Date().toISOString()]
+      "INSERT INTO chore_completions (household_id, chore_id, kid_id, completed_date, status, completed_at) VALUES (?, ?, ?, ?, 'pending', ?)",
+      [req.householdId, chore_id, kid_id, completed_date, new Date().toISOString()]
     );
 
     const newCompletion = await dbManager.get('SELECT * FROM chore_completions WHERE id = ?', [
@@ -592,27 +938,43 @@ app.get(
   '/api/completions/pending',
   parentAuth,
   asyncHandler(async (req, res) => {
-    const pending = await dbManager.all(`
-    SELECT cc.*, c.title as chore_title, c.description as chore_description, c.points as chore_points,
-           k.name as kid_name, k.avatar as kid_avatar, k.color_theme as kid_theme
-    FROM chore_completions cc
-    JOIN chores c ON cc.chore_id = c.id
-    JOIN kids k ON cc.kid_id = k.id
-    WHERE cc.status = 'pending'
-    ORDER BY cc.completed_at ASC
-  `);
+    const pending = req.householdId
+      ? await dbManager.all(
+          `
+        SELECT cc.*, c.title as chore_title, c.description as chore_description, c.points as chore_points,
+               k.name as kid_name, k.avatar as kid_avatar, k.color_theme as kid_theme
+        FROM chore_completions cc
+        JOIN chores c ON cc.chore_id = c.id
+        JOIN kids k ON cc.kid_id = k.id
+        WHERE cc.household_id = ? AND cc.status = 'pending'
+        ORDER BY cc.completed_at ASC
+      `,
+          [req.householdId]
+        )
+      : await dbManager.all(`
+        SELECT cc.*, c.title as chore_title, c.description as chore_description, c.points as chore_points,
+               k.name as kid_name, k.avatar as kid_avatar, k.color_theme as kid_theme
+        FROM chore_completions cc
+        JOIN chores c ON cc.chore_id = c.id
+        JOIN kids k ON cc.kid_id = k.id
+        WHERE cc.status = 'pending'
+        ORDER BY cc.completed_at ASC
+      `);
     res.json(pending);
   })
 );
 
-// Approve chore completion (releases gold coins!)
+// Approve chore completion
 app.put(
   '/api/completions/:id/approve',
   parentAuth,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const completion = await dbManager.get('SELECT * FROM chore_completions WHERE id = ?', [id]);
+    const completion = await dbManager.get(
+      'SELECT * FROM chore_completions WHERE id = ? AND household_id = ?',
+      [id, req.householdId]
+    );
     if (!completion) {
       return res.status(404).json({ error: 'Chore completion record not found.' });
     }
@@ -630,14 +992,11 @@ app.put(
       return res.status(404).json({ error: 'Associated chore or kid profile not found.' });
     }
 
-    // Run transaction to update status and add points
     await dbManager.transaction(async () => {
-      // 1. Update completion record
       await dbManager.run(
         "UPDATE chore_completions SET status = 'approved', approved_at = ? WHERE id = ?",
         [new Date().toISOString(), id]
       );
-      // 2. Add points to kid
       const newPoints = kid.points + chore.points;
       await dbManager.run('UPDATE kids SET points = ? WHERE id = ?', [
         newPoints,
@@ -652,35 +1011,36 @@ app.put(
   })
 );
 
-// approve all chore completions
+// Approve all chore completions
 app.put(
   '/api/completions/approve-all',
   parentAuth,
   asyncHandler(async (req, res) => {
     const pending = await dbManager.all(
       `
-    SELECT cc.id, cc.chore_id, cc.kid_id, c.points
-    FROM chore_completions cc
-    JOIN chores c ON cc.chore_id = c.id
-    WHERE cc.status = 'pending'
-    ORDER BY cc.completed_at ASC
-  `
+      SELECT cc.id, cc.chore_id, cc.kid_id, c.points
+      FROM chore_completions cc
+      JOIN chores c ON cc.chore_id = c.id
+      WHERE cc.household_id = ? AND cc.status = 'pending'
+      ORDER BY cc.completed_at ASC
+    `,
+      [req.householdId]
     );
 
     await dbManager.transaction(async () => {
       for (const completion of pending) {
-        // 1. Update completion record
         await dbManager.run(
           "UPDATE chore_completions SET status = 'approved', approved_at = ? WHERE id = ?",
           [new Date().toISOString(), completion.id]
         );
-        // 2. Add points to kid
         const kid = await dbManager.get('SELECT points FROM kids WHERE id = ?', [completion.kid_id]);
-        const newPoints = kid.points + completion.points;
-        await dbManager.run('UPDATE kids SET points = ? WHERE id = ?', [
-          newPoints,
-          completion.kid_id
-        ]);
+        if (kid) {
+          const newPoints = kid.points + completion.points;
+          await dbManager.run('UPDATE kids SET points = ? WHERE id = ?', [
+            newPoints,
+            completion.kid_id
+          ]);
+        }
       }
     });
 
@@ -688,7 +1048,7 @@ app.put(
   })
 );
 
-// Reject chore completion (sends feedback back)
+// Reject chore completion
 app.put(
   '/api/completions/:id/reject',
   parentAuth,
@@ -696,7 +1056,10 @@ app.put(
     const { id } = req.params;
     const { feedback } = req.body;
 
-    const completion = await dbManager.get('SELECT * FROM chore_completions WHERE id = ?', [id]);
+    const completion = await dbManager.get(
+      'SELECT * FROM chore_completions WHERE id = ? AND household_id = ?',
+      [id, req.householdId]
+    );
     if (!completion) {
       return res.status(404).json({ error: 'Chore completion record not found.' });
     }
@@ -720,17 +1083,17 @@ app.put(
   asyncHandler(async (req, res) => {
     const pending = await dbManager.all(
       `
-    SELECT cc.id, cc.chore_id, cc.kid_id, c.points
-    FROM chore_completions cc
-    JOIN chores c ON cc.chore_id = c.id
-    WHERE cc.status = 'pending'
-    ORDER BY cc.completed_at ASC
-  `
+      SELECT cc.id, cc.chore_id, cc.kid_id, c.points
+      FROM chore_completions cc
+      JOIN chores c ON cc.chore_id = c.id
+      WHERE cc.household_id = ? AND cc.status = 'pending'
+      ORDER BY cc.completed_at ASC
+    `,
+      [req.householdId]
     );
 
     await dbManager.transaction(async () => {
       for (const completion of pending) {
-        // 1. Update completion record
         await dbManager.run(
           "UPDATE chore_completions SET status = 'rejected', approved_at = ? WHERE id = ?",
           [new Date().toISOString(), completion.id]
@@ -750,9 +1113,14 @@ app.put(
 app.get(
   '/api/rewards',
   asyncHandler(async (req, res) => {
-    const rewards = await dbManager.all(
-      'SELECT * FROM rewards WHERE is_active = 1 ORDER BY points_cost ASC'
-    );
+    const rewards = req.householdId
+      ? await dbManager.all(
+          'SELECT * FROM rewards WHERE household_id = ? AND is_active = 1 ORDER BY points_cost ASC',
+          [req.householdId]
+        )
+      : await dbManager.all(
+          'SELECT * FROM rewards WHERE is_active = 1 ORDER BY points_cost ASC'
+        );
     res.json(rewards);
   })
 );
@@ -768,8 +1136,8 @@ app.post(
     }
 
     const result = await dbManager.run(
-      'INSERT INTO rewards (title, description, points_cost) VALUES (?, ?, ?)',
-      [title, description || '', points_cost]
+      'INSERT INTO rewards (household_id, title, description, points_cost) VALUES (?, ?, ?, ?)',
+      [req.householdId, title, description || '', points_cost]
     );
 
     const newReward = await dbManager.get('SELECT * FROM rewards WHERE id = ?', [result.id]);
@@ -785,7 +1153,10 @@ app.put(
     const { id } = req.params;
     const { title, description, points_cost, is_active } = req.body;
 
-    const reward = await dbManager.get('SELECT * FROM rewards WHERE id = ?', [id]);
+    const reward = await dbManager.get(
+      'SELECT * FROM rewards WHERE id = ? AND household_id = ?',
+      [id, req.householdId]
+    );
     if (!reward) {
       return res.status(404).json({ error: 'Reward not found.' });
     }
@@ -796,8 +1167,8 @@ app.put(
     const updatedActive = is_active !== undefined ? is_active : reward.is_active;
 
     await dbManager.run(
-      'UPDATE rewards SET title = ?, description = ?, points_cost = ?, is_active = ? WHERE id = ?',
-      [updatedTitle, updatedDesc, updatedCost, updatedActive, id]
+      'UPDATE rewards SET title = ?, description = ?, points_cost = ?, is_active = ? WHERE id = ? AND household_id = ?',
+      [updatedTitle, updatedDesc, updatedCost, updatedActive, id, req.householdId]
     );
 
     const updatedReward = await dbManager.get('SELECT * FROM rewards WHERE id = ?', [id]);
@@ -811,7 +1182,10 @@ app.delete(
   parentAuth,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const result = await dbManager.run('DELETE FROM rewards WHERE id = ?', [id]);
+    const result = await dbManager.run(
+      'DELETE FROM rewards WHERE id = ? AND household_id = ?',
+      [id, req.householdId]
+    );
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Reward not found.' });
     }
@@ -823,7 +1197,7 @@ app.delete(
 // 5. REDEMPTIONS API ENDPOINTS
 // ==========================================
 
-// Redeem a reward (Deducts points immediately, sets status to pending)
+// Redeem a reward
 app.post(
   '/api/redemptions',
   asyncHandler(async (req, res) => {
@@ -832,9 +1206,10 @@ app.post(
       return res.status(400).json({ error: 'Reward ID and Kid ID are required.' });
     }
 
-    const reward = await dbManager.get('SELECT * FROM rewards WHERE id = ? AND is_active = 1', [
-      reward_id
-    ]);
+    const reward = await dbManager.get(
+      'SELECT * FROM rewards WHERE id = ? AND is_active = 1',
+      [reward_id]
+    );
     const kid = await dbManager.get('SELECT * FROM kids WHERE id = ?', [kid_id]);
 
     if (!reward || !kid) {
@@ -849,27 +1224,24 @@ app.post(
 
     let redemptionId = null;
 
-    // Run transaction to log redemption and deduct points
     await dbManager.transaction(async () => {
-      // 1. Insert redemption record
       const result = await dbManager.run(
-        "INSERT INTO reward_redemptions (reward_id, kid_id, redeemed_at, status) VALUES (?, ?, ?, 'pending')",
-        [reward_id, kid_id, new Date().toISOString()]
+        "INSERT INTO reward_redemptions (household_id, reward_id, kid_id, redeemed_at, status) VALUES (?, ?, ?, ?, 'pending')",
+        [req.householdId, reward_id, kid_id, new Date().toISOString()]
       );
       redemptionId = result.id;
 
-      // 2. Deduct points from kid
       const newPoints = kid.points - reward.points_cost;
       await dbManager.run('UPDATE kids SET points = ? WHERE id = ?', [newPoints, kid_id]);
     });
 
     const redemption = await dbManager.get(
       `
-    SELECT rr.*, r.title as reward_title, r.description as reward_description, r.points_cost as reward_cost
-    FROM reward_redemptions rr
-    JOIN rewards r ON rr.reward_id = r.id
-    WHERE rr.id = ?
-  `,
+      SELECT rr.*, r.title as reward_title, r.description as reward_description, r.points_cost as reward_cost
+      FROM reward_redemptions rr
+      JOIN rewards r ON rr.reward_id = r.id
+      WHERE rr.id = ?
+    `,
       [redemptionId]
     );
 
@@ -882,27 +1254,43 @@ app.get(
   '/api/redemptions/pending',
   parentAuth,
   asyncHandler(async (req, res) => {
-    const pending = await dbManager.all(`
-    SELECT rr.*, r.title as reward_title, r.description as reward_description, r.points_cost as reward_cost,
-           k.name as kid_name, k.avatar as kid_avatar, k.color_theme as kid_theme
-    FROM reward_redemptions rr
-    JOIN rewards r ON rr.reward_id = r.id
-    JOIN kids k ON rr.kid_id = k.id
-    WHERE rr.status = 'pending'
-    ORDER BY rr.redeemed_at ASC
-  `);
+    const pending = req.householdId
+      ? await dbManager.all(
+          `
+        SELECT rr.*, r.title as reward_title, r.description as reward_description, r.points_cost as reward_cost,
+               k.name as kid_name, k.avatar as kid_avatar, k.color_theme as kid_theme
+        FROM reward_redemptions rr
+        JOIN rewards r ON rr.reward_id = r.id
+        JOIN kids k ON rr.kid_id = k.id
+        WHERE rr.household_id = ? AND rr.status = 'pending'
+        ORDER BY rr.redeemed_at ASC
+      `,
+          [req.householdId]
+        )
+      : await dbManager.all(`
+        SELECT rr.*, r.title as reward_title, r.description as reward_description, r.points_cost as reward_cost,
+               k.name as kid_name, k.avatar as kid_avatar, k.color_theme as kid_theme
+        FROM reward_redemptions rr
+        JOIN rewards r ON rr.reward_id = r.id
+        JOIN kids k ON rr.kid_id = k.id
+        WHERE rr.status = 'pending'
+        ORDER BY rr.redeemed_at ASC
+      `);
     res.json(pending);
   })
 );
 
-// Fulfill a redemption (Mark as claimed/given)
+// Fulfill a redemption
 app.put(
   '/api/redemptions/:id/fulfill',
   parentAuth,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const redemption = await dbManager.get('SELECT * FROM reward_redemptions WHERE id = ?', [id]);
+    const redemption = await dbManager.get(
+      'SELECT * FROM reward_redemptions WHERE id = ? AND household_id = ?',
+      [id, req.householdId]
+    );
     if (!redemption) {
       return res.status(404).json({ error: 'Redemption record not found.' });
     }
@@ -916,18 +1304,18 @@ app.put(
       [new Date().toISOString(), id]
     );
 
-    const updatedRedemption = await dbManager.get('SELECT * FROM reward_redemptions WHERE id = ?', [
-      id
-    ]);
+    const updatedRedemption = await dbManager.get(
+      'SELECT * FROM reward_redemptions WHERE id = ?',
+      [id]
+    );
     res.json({ success: true, redemption: updatedRedemption });
   })
 );
 
 // ==========================================
-// STATIC FILES FALLBACK
+// STATIC FILES & SPA FALLBACK
 // ==========================================
 
-// Handle SPA routing: send index.html for all other requests
 app.get('*', (req, res) => {
   res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
@@ -947,3 +1335,4 @@ dbManager
     logger.error('Fatal: Failed to initialize SQLite database:', err);
     process.exit(1);
   });
+

@@ -13,6 +13,9 @@ export default function App() {
   const [initialized, setInitialized] = useState(true);
   const [guildName, setGuildName] = useState('ChoreQuest');
 
+  const [householdId, setHouseholdId] = useState(() => localStorage.getItem('cq_household_id'));
+  const [parentToken, setParentToken] = useState(null);
+
   // Dynamic Light/Dark Theme management
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -46,15 +49,39 @@ export default function App() {
     checkSetupStatus();
   }, []);
 
-  const checkSetupStatus = async () => {
+  const checkSetupStatus = async (setupData) => {
     setLoading(true);
     try {
+      if (setupData?.householdId) {
+        setHouseholdId(setupData.householdId);
+        localStorage.setItem('cq_household_id', setupData.householdId);
+        if (setupData.guildName) setGuildName(setupData.guildName);
+      }
       const res = await fetch('/api/setup-status');
       const data = await res.json();
       setInitialized(data.initialized);
+      if (data.householdId) {
+        setHouseholdId(data.householdId);
+        localStorage.setItem('cq_household_id', data.householdId);
+      }
+      if (data.guildName) {
+        setGuildName(data.guildName);
+      }
+
       if (!data.initialized) {
+        localStorage.removeItem('cq_household_id');
+        localStorage.removeItem('cq_device_token');
+        localStorage.removeItem('cq_role');
+        setHouseholdId(null);
         setView('setup_wizard');
       } else {
+        if (data.householdId) {
+          setHouseholdId(data.householdId);
+          localStorage.setItem('cq_household_id', data.householdId);
+        }
+        if (data.guildName) {
+          setGuildName(data.guildName);
+        }
         await fetchKids();
         await fetchConfig();
         setView('profile_select');
@@ -87,8 +114,6 @@ export default function App() {
       console.error('Error fetching kids profiles:', err);
     }
   };
-
-  const [parentToken, setParentToken] = useState(null);
 
   const handleSelectKid = (kid) => {
     setCurrentKid(kid);
@@ -228,6 +253,7 @@ export default function App() {
                 onSelectKid={handleSelectKid}
                 onSelectParent={handleSelectParent}
                 onAddKid={handleAddKid}
+                onJoinSuccess={checkSetupStatus}
               />
             )}
 
@@ -243,6 +269,8 @@ export default function App() {
               <ParentDashboard
                 kids={kids}
                 parentToken={parentToken}
+                householdId={householdId}
+                guildName={guildName}
                 onBackToProfiles={handleBackToProfiles}
                 onReloadKids={fetchKids}
               />
