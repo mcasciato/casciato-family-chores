@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QrCode, KeyRound, Camera, ArrowRight, ShieldAlert, Sparkles, X, Check, RefreshCw } from 'lucide-react';
+import { KeyRound, Camera, ArrowRight, ShieldAlert, Sparkles, X, Check, RefreshCw } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 export default function JoinFamilyModal({ isOpen, onClose, onJoinSuccess }) {
@@ -10,9 +10,7 @@ export default function JoinFamilyModal({ isOpen, onClose, onJoinSuccess }) {
   const [parentPin, setParentPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [scannerStarted, setScannerStarted] = useState(false);
 
-  const scannerRef = useRef(null);
   const scannerInstanceRef = useRef(null);
 
   useEffect(() => {
@@ -32,11 +30,11 @@ export default function JoinFamilyModal({ isOpen, onClose, onJoinSuccess }) {
     return () => {
       stopScanner();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, isOpen]);
 
   const startScanner = async () => {
     setError('');
-    setScannerStarted(false);
     try {
       if (!scannerInstanceRef.current) {
         scannerInstanceRef.current = new Html5Qrcode('qr-reader-region');
@@ -53,15 +51,13 @@ export default function JoinFamilyModal({ isOpen, onClose, onJoinSuccess }) {
           stopScanner();
           handleScannedData(decodedText);
         },
-        (errorMessage) => {
+        () => {
           // scanning frame errors are expected and ignored
         }
       );
-      setScannerStarted(true);
     } catch (err) {
       console.warn('Camera scan failed to start:', err);
       setError('Camera access denied or unavailable. You can enter the 6-character code manually!');
-      setScannerStarted(false);
     }
   };
 
@@ -71,18 +67,20 @@ export default function JoinFamilyModal({ isOpen, onClose, onJoinSuccess }) {
         if (scannerInstanceRef.current.isScanning) {
           scannerInstanceRef.current.stop().then(() => {
             scannerInstanceRef.current.clear();
-          }).catch(() => {});
+          }).catch(() => {
+            /* ignore promise rejection */
+          });
         }
-      } catch (e) {}
+      } catch (_err) {
+        /* ignore cleanup errors */
+      }
     }
-    setScannerStarted(false);
   };
 
   const handleScannedData = async (raw) => {
     setLoading(true);
     setError('');
     try {
-      let payload = raw;
       let codeToUse = raw;
 
       try {

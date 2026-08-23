@@ -52,6 +52,7 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
   useEffect(() => {
     fetchQueues();
     fetchResources();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   useEffect(() => {
@@ -130,7 +131,7 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
   };
 
   // Chore approval actions
-  const handleApproveChore = async (id, kidName, points) => {
+  const handleApproveChore = async (id, _kidName, _points) => {
     try {
       const res = await fetch(`/api/completions/${id}/approve`, {
         method: 'PUT',

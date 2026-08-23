@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QrCode, Smartphone, Tablet, RefreshCw, X, Copy, Check, Trash2, Shield, User, Clock, KeyRound, ShieldAlert } from 'lucide-react';
+import { QrCode, Smartphone, Tablet, RefreshCw, X, Copy, Check, Trash2, Shield, Clock, ShieldAlert } from 'lucide-react';
 import QRCode from 'qrcode';
 import RecoveryKitModal from './RecoveryKitModal';
 
@@ -21,12 +21,14 @@ export default function FamilyPairingModal({ isOpen, onClose, householdId, guild
       generatePairingCode(role);
       fetchDevices();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
       generatePairingCode(role);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
   // Countdown timer for pairing code

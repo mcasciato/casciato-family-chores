@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldCheck, Copy, Check, Printer, X, Download, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Copy, Check, Printer, X, AlertTriangle } from 'lucide-react';
 import QRCode from 'qrcode';
 
 export default function RecoveryKitModal({ isOpen, onClose, householdId, guildName, parentToken }) {
@@ -12,6 +12,7 @@ export default function RecoveryKitModal({ isOpen, onClose, householdId, guildNa
     if (isOpen) {
       fetchRecoveryData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, parentToken]);
 
   const fetchRecoveryData = async () => {

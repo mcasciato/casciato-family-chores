@@ -10,7 +10,6 @@ export default function App() {
   const [kids, setKids] = useState([]);
   const [currentKid, setCurrentKid] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(true);
   const [guildName, setGuildName] = useState('ChoreQuest');
 
   const [householdId, setHouseholdId] = useState(() => localStorage.getItem('cq_household_id'));
@@ -47,6 +46,7 @@ export default function App() {
   // Check setup status on mount
   useEffect(() => {
     checkSetupStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkSetupStatus = async (setupData) => {
@@ -59,7 +59,6 @@ export default function App() {
       }
       const res = await fetch('/api/setup-status');
       const data = await res.json();
-      setInitialized(data.initialized);
       if (data.householdId) {
         setHouseholdId(data.householdId);
         localStorage.setItem('cq_household_id', data.householdId);
