@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.8.1...v1.9.0) (2026-08-23)
+
+
+### Features
+
+* **db:** add standard and lifecycle timestamps across all tables wit… ([#34](https://github.com/mcasciato/casciato-family-chores/issues/34)) ([545a964](https://github.com/mcasciato/casciato-family-chores/commit/545a96495840f36fbd4543c86aa001d923c401cd))
+
 ## [1.8.1](https://github.com/mcasciato/casciato-family-chores/compare/v1.8.0...v1.8.1) (2026-08-23)
 
 
