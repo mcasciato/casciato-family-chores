@@ -26,6 +26,7 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
     if (dateStr) {
       fetchData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateStr]);
 
   const fetchData = async () => {

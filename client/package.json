@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "canvas-confetti": "^1.9.3",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.379.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

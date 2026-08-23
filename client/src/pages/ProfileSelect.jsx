@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Plus } from 'lucide-react';
+import { ShieldCheck, Plus, QrCode } from 'lucide-react';
 
 // Import modular components
 import ProfilePinModal from '../components/profile/ProfilePinModal';
 import AddHeroModal from '../components/profile/AddHeroModal';
+import JoinFamilyModal from '../components/pairing/JoinFamilyModal';
 
-export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAddKid }) {
+export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAddKid, onJoinSuccess }) {
   const [pinModalKid, setPinModalKid] = useState(null);
   const [pinError, setPinError] = useState('');
   const [isAddingProfile, setIsAddingProfile] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
 
   const handleProfileClick = (kid) => {
     setPinModalKid(kid);
@@ -125,8 +127,8 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
         </div>
       </div>
 
-      {/* Parent Command Center Section */}
-      <div style={{ marginTop: '4rem', display: 'flex', justifyContent: 'center' }}>
+      {/* Action Buttons Section */}
+      <div style={{ marginTop: '3.5rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
         <button
           className="user-badge theme-parent"
           onClick={handleParentCommandClick}
@@ -136,6 +138,15 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
           <span className="user-name" style={{ fontSize: '1rem' }}>
             Parent Command Center
           </span>
+        </button>
+
+        <button
+          className="btn btn-outline"
+          onClick={() => setIsJoinModalOpen(true)}
+          style={{ padding: '0.75rem 1.25rem', borderRadius: '12px' }}
+        >
+          <QrCode size={18} />
+          <span>Link Device</span>
         </button>
       </div>
 
@@ -154,6 +165,17 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
         onClose={() => setIsAddingProfile(false)}
         onSubmit={handleCreateProfile}
       />
+
+      {/* Join / Pair Modal */}
+      <JoinFamilyModal
+        isOpen={isJoinModalOpen}
+        onClose={() => setIsJoinModalOpen(false)}
+        onJoinSuccess={(data) => {
+          if (onJoinSuccess) onJoinSuccess(data);
+          else window.location.reload();
+        }}
+      />
     </div>
   );
 }
+
