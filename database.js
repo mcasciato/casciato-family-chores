@@ -291,6 +291,27 @@ async function runMigrations() {
     }
   }
 
+  // Ensure kids table has pin_hash and pin_salt columns
+  const hasKidPinHash = await hasColumn('kids', 'pin_hash');
+  if (!hasKidPinHash) {
+    logger.info('Migrating table kids: adding pin_hash column...');
+    try {
+      await run('ALTER TABLE kids ADD COLUMN pin_hash TEXT');
+    } catch (err) {
+      logger.error('Failed to add pin_hash column to kids:', err.message);
+    }
+  }
+
+  const hasKidPinSalt = await hasColumn('kids', 'pin_salt');
+  if (!hasKidPinSalt) {
+    logger.info('Migrating table kids: adding pin_salt column...');
+    try {
+      await run('ALTER TABLE kids ADD COLUMN pin_salt TEXT');
+    } catch (err) {
+      logger.error('Failed to add pin_salt column to kids:', err.message);
+    }
+  }
+
   // Check if legacy unpartitioned data exists
   try {
     const unpartitionedKids = await get('SELECT COUNT(*) as count FROM kids WHERE household_id IS NULL');
@@ -303,8 +324,10 @@ async function runMigrations() {
 
       const defaultHouseholdId = crypto.randomUUID();
       const guildName = legacyGuildNameSetting ? legacyGuildNameSetting.value : 'ChoreQuest Guild';
-      const pinHash = legacyPinHash ? legacyPinHash.value : hashPin('0510').hash;
-      const pinSalt = legacyPinSalt ? legacyPinSalt.value : hashPin('0510').salt;
+      const defaultPin = process.env.PARENT_PIN || '0510';
+      const defaultHashed = hashPin(defaultPin);
+      const pinHash = legacyPinHash ? legacyPinHash.value : defaultHashed.hash;
+      const pinSalt = legacyPinSalt ? legacyPinSalt.value : defaultHashed.salt;
       const recoveryKey = generateRecoveryKey();
       const createdAt = new Date().toISOString();
 
@@ -334,6 +357,27 @@ async function runMigrations() {
     }
   } catch (err) {
     logger.warn('Migration check completed with notice:', err.message);
+  }
+
+  // Populate any null or empty pin_hash/pin_salt in kids table
+  try {
+    const hasLegacyPinCol = await hasColumn('kids', 'pin');
+    const selectQuery = hasLegacyPinCol
+      ? 'SELECT id, pin, pin_hash, pin_salt FROM kids WHERE pin_hash IS NULL OR pin_hash = ""'
+      : 'SELECT id, pin_hash, pin_salt FROM kids WHERE pin_hash IS NULL OR pin_hash = ""';
+    
+    const unhashedKids = await all(selectQuery);
+    if (unhashedKids && unhashedKids.length > 0) {
+      logger.info(`Migrating ${unhashedKids.length} kid record(s) without pin hashes...`);
+      for (const k of unhashedKids) {
+        const kidPin = (hasLegacyPinCol && k.pin) ? String(k.pin) : '1234';
+        const { hash, salt } = hashPin(kidPin);
+        await run('UPDATE kids SET pin_hash = ?, pin_salt = ? WHERE id = ?', [hash, salt, k.id]);
+      }
+      logger.info('Kid records successfully populated with hashed PIN credentials.');
+    }
+  } catch (err) {
+    logger.warn('Kid PIN migration notice:', err.message);
   }
 }
 

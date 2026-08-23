@@ -204,6 +204,15 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const getAuthHeaders = () => {
+    const storedHouseholdId = localStorage.getItem('cq_household_id');
+    const storedDeviceToken = localStorage.getItem('cq_device_token');
+    const headers = {};
+    if (storedHouseholdId) headers['x-household-id'] = storedHouseholdId;
+    if (storedDeviceToken) headers['x-device-token'] = storedDeviceToken;
+    return headers;
+  };
+
   const checkSetupStatus = async (setupData) => {
     setLoading(true);
     try {
@@ -213,7 +222,9 @@ export default function App() {
         if (setupData.guildName) setGuildName(setupData.guildName);
         if (setupData.themePack) setThemePackId(setupData.themePack);
       }
-      const res = await fetch('/api/setup-status');
+      const res = await fetch('/api/setup-status', {
+        headers: getAuthHeaders()
+      });
       const data = await res.json();
       if (data.householdId) {
         setHouseholdId(data.householdId);
@@ -246,7 +257,9 @@ export default function App() {
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch('/api/config');
+      const res = await fetch('/api/config', {
+        headers: getAuthHeaders()
+      });
       const data = await res.json();
       if (data.guild_name) {
         setGuildName(data.guild_name);
@@ -261,7 +274,9 @@ export default function App() {
 
   const fetchKids = async () => {
     try {
-      const res = await fetch('/api/kids');
+      const res = await fetch('/api/kids', {
+        headers: getAuthHeaders()
+      });
       const data = await res.json();
       setKids(data);
     } catch (err) {

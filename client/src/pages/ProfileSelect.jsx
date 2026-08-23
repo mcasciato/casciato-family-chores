@@ -27,11 +27,19 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
   const handlePinSubmit = async (pinInput) => {
     if (!pinInput) return;
 
+    const storedHouseholdId = localStorage.getItem('cq_household_id');
+    const storedDeviceToken = localStorage.getItem('cq_device_token');
+    const authHeaders = {
+      'Content-Type': 'application/json',
+      ...(storedHouseholdId ? { 'x-household-id': storedHouseholdId } : {}),
+      ...(storedDeviceToken ? { 'x-device-token': storedDeviceToken } : {})
+    };
+
     if (pinModalKid.id === 'parent') {
       try {
         const res = await fetch('/api/verify-parent-pin', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({ pin: pinInput })
         });
         if (res.ok) {
@@ -53,7 +61,7 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
       try {
         const res = await fetch(`/api/kids/${pinModalKid.id}/verify-pin`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({ pin: pinInput })
         });
         if (res.ok) {
