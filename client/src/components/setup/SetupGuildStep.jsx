@@ -1,28 +1,29 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function SetupGuildStep({
+  themePack,
   guildName,
   setGuildName,
   parentPin,
   setParentPin,
   parentPinConfirm,
   setParentPinConfirm,
+  onBack,
   onNext
 }) {
   return (
     <div className="setup-form-step">
-      <h2>🛡️ Configure Your Guild</h2>
+      <h2>{themePack?.icon || '🏡'} Name Your {themePack?.householdLabel || 'Family Group'}</h2>
       <p className="description">
-        Name your household's Guild and set a secure 4-digit Parent PIN to access settings and
-        approve chores.
+        Set your family name and a secure 4-digit Parent PIN to manage settings and approve tasks.
       </p>
 
       <div className="input-group">
-        <label>Guild Name</label>
+        <label>{themePack?.householdLabel || 'Family'} Name</label>
         <input
           type="text"
-          placeholder="e.g., Casciato Guild"
+          placeholder={themePack?.householdPlaceholder || 'e.g., Casciato Family'}
           value={guildName}
           onChange={(e) => setGuildName(e.target.value)}
         />
@@ -51,9 +52,16 @@ export default function SetupGuildStep({
         </div>
       </div>
 
-      <button className="btn-setup-next" onClick={onNext}>
-        Continue to Hero Setup <Sparkles size={16} />
-      </button>
+      <div className="setup-buttons-row">
+        <button className="btn-setup-back" type="button" onClick={onBack}>
+          <ArrowLeft size={16} /> Back
+        </button>
+        <button className="btn-setup-submit" type="button" onClick={onNext} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+          <span>Next: Add {themePack?.memberLabel || 'Member'}</span>
+          <ArrowRight size={16} />
+        </button>
+      </div>
     </div>
   );
 }
+

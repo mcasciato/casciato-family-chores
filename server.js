@@ -150,7 +150,7 @@ app.get(
     let kidsCount = 0;
 
     if (req.householdId) {
-      household = await dbManager.get('SELECT id, name FROM households WHERE id = ?', [
+      household = await dbManager.get('SELECT id, name, theme_pack FROM households WHERE id = ?', [
         req.householdId
       ]);
       if (household) {
@@ -163,7 +163,7 @@ app.get(
     }
 
     if (!household) {
-      const fallbackHousehold = await dbManager.get('SELECT id, name FROM households LIMIT 1');
+      const fallbackHousehold = await dbManager.get('SELECT id, name, theme_pack FROM households LIMIT 1');
       if (fallbackHousehold) {
         household = fallbackHousehold;
         const countRow = await dbManager.get(
@@ -178,13 +178,15 @@ app.get(
       res.json({
         initialized: true,
         householdId: household.id,
-        guildName: household.name
+        guildName: household.name,
+        themePack: household.theme_pack || 'nature'
       });
     } else {
       res.json({
         initialized: false,
         householdId: null,
-        guildName: 'ChoreQuest'
+        guildName: 'ChoreQuest',
+        themePack: 'nature'
       });
     }
   })
@@ -194,7 +196,7 @@ app.get(
 app.post(
   '/api/setup',
   asyncHandler(async (req, res) => {
-    const { guild_name, parent_pin, kid, device_name } = req.body;
+    const { guild_name, parent_pin, kid, device_name, theme_pack = 'nature' } = req.body;
     if (!guild_name || !parent_pin || !kid || !kid.name || !kid.avatar) {
       return res
         .status(400)
@@ -205,18 +207,24 @@ app.post(
     const { hash: parentHash, salt: parentSalt } = dbManager.hashPin(parent_pin);
     const recoveryKey = dbManager.generateRecoveryKey();
     const createdAt = new Date().toISOString();
+    const validThemes = ['nature', 'cosmic', 'champions', 'magic', 'arcade'];
+    const chosenTheme = validThemes.includes(theme_pack) ? theme_pack : 'nature';
 
     await dbManager.transaction(async () => {
       // 1. Insert household
       await dbManager.run(
-        'INSERT INTO households (id, name, parent_pin_hash, parent_pin_salt, recovery_key, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [householdId, guild_name.trim(), parentHash, parentSalt, recoveryKey, createdAt]
+        'INSERT INTO households (id, name, theme_pack, parent_pin_hash, parent_pin_salt, recovery_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [householdId, guild_name.trim(), chosenTheme, parentHash, parentSalt, recoveryKey, createdAt]
       );
 
       // 2. Store settings
       await dbManager.run(
         "INSERT OR REPLACE INTO settings (household_id, key, value) VALUES (?, 'guild_name', ?)",
         [householdId, guild_name.trim()]
+      );
+      await dbManager.run(
+        "INSERT OR REPLACE INTO settings (household_id, key, value) VALUES (?, 'theme_pack', ?)",
+        [householdId, chosenTheme]
       );
 
       // 3. Create initial hero
@@ -251,7 +259,8 @@ app.post(
       parentToken,
       recoveryKey,
       role: 'parent',
-      guildName: guild_name.trim()
+      guildName: guild_name.trim(),
+      themePack: chosenTheme
     });
   })
 );
@@ -476,11 +485,39 @@ app.get(
   '/api/config',
   asyncHandler(async (req, res) => {
     let guildName = 'ChoreQuest';
+    let themePack = 'nature';
     if (req.householdId) {
-      const household = await dbManager.get('SELECT name FROM households WHERE id = ?', [req.householdId]);
-      if (household) guildName = household.name;
+      const household = await dbManager.get('SELECT name, theme_pack FROM households WHERE id = ?', [req.householdId]);
+      if (household) {
+        guildName = household.name;
+        themePack = household.theme_pack || 'nature';
+      }
     }
-    res.json({ guild_name: guildName });
+    res.json({ guild_name: guildName, theme_pack: themePack });
+  })
+);
+
+// Switch household theme pack (Protected by Parent Auth)
+app.put(
+  '/api/household/theme',
+  parentAuth,
+  asyncHandler(async (req, res) => {
+    const { theme_pack } = req.body;
+    const validThemes = ['nature', 'cosmic', 'champions', 'magic', 'arcade'];
+    if (!theme_pack || !validThemes.includes(theme_pack)) {
+      return res.status(400).json({ error: 'Invalid theme pack selection.' });
+    }
+
+    await dbManager.run('UPDATE households SET theme_pack = ? WHERE id = ?', [
+      theme_pack,
+      req.householdId
+    ]);
+    await dbManager.run(
+      "INSERT OR REPLACE INTO settings (household_id, key, value) VALUES (?, 'theme_pack', ?)",
+      [req.householdId, theme_pack]
+    );
+
+    res.json({ success: true, theme_pack });
   })
 );
 

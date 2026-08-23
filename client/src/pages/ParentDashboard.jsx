@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ShieldCheck,
-  UserPlus,
-  Sword,
+  Users,
+  CheckSquare,
   Gift,
   Clock,
-  QrCode
+  QrCode,
+  Palette
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useThemePack } from '../context/ThemePackContext';
 
 // Import Modular Components
 import KidsProgressTable from '../components/parent/KidsProgressTable';
@@ -22,10 +23,13 @@ import RewardModal from '../components/parent/Modals/RewardModal';
 import AdjustmentModal from '../components/parent/Modals/AdjustmentModal';
 import KidEditModal from '../components/parent/Modals/KidEditModal';
 import FamilyPairingModal from '../components/pairing/FamilyPairingModal';
+import ThemeSelectModal from '../components/parent/Modals/ThemeSelectModal';
 
 export default function ParentDashboard({ kids, parentToken, householdId, guildName, onBackToProfiles, onReloadKids }) {
+  const { themePack } = useThemePack();
   const [activeTab, setActiveTab] = useState('approvals'); // approvals, chores, rewards, kids
   const [isPairingModalOpen, setIsPairingModalOpen] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   const [pendingCompletions, setPendingCompletions] = useState([]);
   const [pendingRedemptions, setPendingRedemptions] = useState([]);
@@ -138,16 +142,14 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
         headers: { 'x-parent-token': parentToken }
       });
       if (res.ok) {
-        // Exploding stars & coins confetti burst for kid approval!
         confetti({
           particleCount: 80,
-          spread: 50,
-          origin: { y: 0.5 },
-          colors: ['#f59e0b', '#10b981', '#fbbf24']
+          spread: 60,
+          origin: { y: 0.7 },
+          colors: ['#10b981', '#3b82f6', '#f59e0b']
         });
-
         fetchQueues();
-        onReloadKids(); // Reload global list of kids
+        onReloadKids();
       }
     } catch (err) {
       console.error('Error approving chore:', err);
@@ -163,10 +165,9 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
       });
       if (res.ok) {
         confetti({
-          particleCount: 80,
-          spread: 50,
-          origin: { y: 0.5 },
-          colors: ['#f59e0b', '#10b981', '#fbbf24']
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.7 }
         });
 
         fetchQueues();
@@ -186,7 +187,7 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
           'Content-Type': 'application/json',
           'x-parent-token': parentToken
         },
-        body: JSON.stringify({ feedback: feedback || 'Please redo this task.' })
+        body: JSON.stringify({ feedback })
       });
       if (res.ok) {
         fetchQueues();
@@ -220,14 +221,15 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
       });
       if (res.ok) {
         confetti({
-          particleCount: 50,
-          spread: 30,
-          colors: ['#10b981', '#34d399']
+          particleCount: 60,
+          spread: 50,
+          origin: { y: 0.7 },
+          colors: ['#ec4899', '#8b5cf6', '#10b981']
         });
         fetchQueues();
       }
     } catch (err) {
-      console.error('Error fulfilling redemption:', err);
+      console.error('Error fulfilling reward redemption:', err);
     }
   };
 
@@ -286,7 +288,7 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
   };
 
   const handleDeleteChore = async (id) => {
-    if (!confirm('Are you sure you want to delete this chore?')) return;
+    if (!confirm('Are you sure you want to delete this task?')) return;
     try {
       const res = await fetch(`/api/chores/${id}`, {
         method: 'DELETE',
@@ -362,31 +364,31 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
     }
   };
 
-  // Kid Adjustments Handlers
+  // Manual Points Adjustment
   const handleOpenAdjustment = (kid) => {
     setSelectedKidForAdjustment(kid);
     setIsAdjustmentModalOpen(true);
   };
 
-  const handleAdjustmentSubmit = async (amount) => {
+  const handleAdjustmentSubmit = async (amount, reason) => {
     if (!selectedKidForAdjustment) return;
-    const newPoints = Math.max(0, selectedKidForAdjustment.points + amount);
 
     try {
-      const res = await fetch(`/api/kids/${selectedKidForAdjustment.id}`, {
-        method: 'PUT',
+      const res = await fetch(`/api/kids/${selectedKidForAdjustment.id}/adjust-points`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-parent-token': parentToken
         },
-        body: JSON.stringify({ points: newPoints })
+        body: JSON.stringify({ amount, reason })
       });
+
       if (res.ok) {
         setIsAdjustmentModalOpen(false);
         onReloadKids();
       }
     } catch (err) {
-      console.error('Error adjusting kid gold balance:', err);
+      console.error('Error adjusting points:', err);
     }
   };
 
@@ -462,22 +464,29 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <ShieldCheck size={36} style={{ color: 'var(--theme-parent)' }} />
+            <span style={{ fontSize: '2.2rem' }}>{themePack?.icon || '🛡️'}</span>
             <div>
-              <h2 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Guild Master Control</h2>
+              <h2 style={{ fontSize: '1.6rem', fontWeight: 800 }}>{themePack?.adminLabel || 'Parent Command Center'}</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                Parents command panel to verify quests and dispense loot.
+                Parent panel to verify {themePack?.tasksTab?.toLowerCase() || 'tasks'}, manage rewards, and configure family settings.
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-outline"
+              onClick={() => setIsThemeModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <Palette size={16} /> Theme: {themePack?.name}
+            </button>
             <button
               className="btn btn-outline"
               onClick={() => setIsPairingModalOpen(true)}
               style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
             >
-              <QrCode size={16} /> Link Devices &amp; Backup
+              <QrCode size={16} /> Link Devices
             </button>
             <button className="btn btn-secondary" onClick={onBackToProfiles}>
               Exit Parent Mode
@@ -524,7 +533,7 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
           onClick={() => setActiveTab('chores')}
           style={{ flex: 1, minWidth: '150px' }}
         >
-          <Sword size={16} /> Quest Editor
+          <CheckSquare size={16} /> {themePack?.tasksTab || 'Tasks'}
         </button>
 
         <button
@@ -532,7 +541,7 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
           onClick={() => setActiveTab('rewards')}
           style={{ flex: 1, minWidth: '150px' }}
         >
-          <Gift size={16} /> Loot Manager
+          <Gift size={16} /> {themePack?.rewardsTab || 'Rewards'}
         </button>
 
         <button
@@ -540,7 +549,7 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
           onClick={() => setActiveTab('kids')}
           style={{ flex: 1, minWidth: '150px' }}
         >
-          <UserPlus size={16} /> Heroes (Kids)
+          <Users size={16} /> {themePack?.membersLabel || 'Members'}
         </button>
       </div>
 
@@ -620,6 +629,11 @@ export default function ParentDashboard({ kids, parentToken, householdId, guildN
         householdId={householdId}
         guildName={guildName}
         parentToken={parentToken}
+      />
+
+      <ThemeSelectModal
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
       />
     </div>
   );

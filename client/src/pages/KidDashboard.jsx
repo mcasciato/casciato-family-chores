@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Coins, LogOut, Sword, ShoppingBag } from 'lucide-react';
+import { LogOut, CheckSquare, Gift } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useThemePack } from '../context/ThemePackContext';
 
 // Import modular components
 import QuestsTab from '../components/kid/QuestsTab';
 import LootShopTab from '../components/kid/LootShopTab';
 
 export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints }) {
+  const { themePack } = useThemePack();
   const [chores, setChores] = useState([]);
   const [rewards, setRewards] = useState([]);
   const [activeTab, setActiveTab] = useState('quests'); // 'quests' or 'loot'
@@ -69,12 +71,12 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
           colors: ['#3b82f6', '#10b981', '#8b5cf6']
         });
 
-        setSuccessMessage('Quest completed! Waiting for Guild Master approval.');
+        setSuccessMessage(`${themePack?.taskSingle || 'Task'} completed! Waiting for parent approval.`);
         setTimeout(() => setSuccessMessage(''), 4000);
         fetchData();
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to complete quest.');
+        alert(err.error || 'Failed to submit task.');
       }
     } catch (err) {
       console.error('Error submitting completion:', err);
@@ -99,15 +101,15 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
         confetti({
           particleCount: 150,
           spread: 80,
-          origin: { y: 0.6 }
+          origin: { y: 0.6 },
+          colors: ['#f59e0b', '#ec4899', '#8b5cf6', '#10b981']
         });
 
         // Update the kid's points inside parent state
-        onUpdateKidPoints(kid.points - reward.points_cost);
+        const newPoints = kid.points - reward.points_cost;
+        onUpdateKidPoints(newPoints);
 
-        setSuccessMessage(
-          `Success! You redeemed "${reward.title}". Ask your parents for your reward!`
-        );
+        setSuccessMessage(`Reward requested: "${reward.title}"! Parents will fulfill it soon.`);
         setTimeout(() => setSuccessMessage(''), 5000);
         fetchData();
       } else {
@@ -161,7 +163,7 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
             <div>
               <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Welcome, {kid.name}!</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.15rem' }}>
-                Level: {Math.floor(kid.points / 100) + 1} Hero
+                Level {Math.floor(kid.points / 100) + 1} {themePack?.memberLabel || 'Member'}
               </p>
             </div>
           </div>
@@ -176,7 +178,7 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
                 gap: '0.75rem'
               }}
             >
-              <Coins size={28} style={{ color: 'var(--theme-amber)' }} />
+              <span style={{ fontSize: '1.8rem' }}>{themePack?.currencyIcon || '⭐'}</span>
               <div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 800 }}>{kid.points}</div>
                 <div
@@ -187,7 +189,7 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
                     fontWeight: 600
                   }}
                 >
-                  Gold Coins
+                  {themePack?.currencyName || 'Points'}
                 </div>
               </div>
             </div>
@@ -216,9 +218,9 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
                 fontWeight: 600
               }}
             >
-              <span style={{ color: 'var(--text-muted)' }}>TODAY'S CAMPAIGN PROGRESS</span>
+              <span style={{ color: 'var(--text-muted)' }}>TODAY'S PROGRESS</span>
               <span style={{ color: 'var(--accent)' }}>
-                {completedToday}/{totalChores} Quests Submitting ({percentCompleted}%)
+                {completedToday}/{totalChores} {themePack?.tasksTab || 'Tasks'} ({percentCompleted}%)
               </span>
             </div>
             <div className="progress-container">
@@ -257,14 +259,14 @@ export default function KidDashboard({ kid, onBackToProfiles, onUpdateKidPoints 
           onClick={() => setActiveTab('quests')}
           style={{ flex: 1, padding: '1rem' }}
         >
-          <Sword size={20} /> Active Quests ({chores.length})
+          <CheckSquare size={20} /> {themePack?.tasksTab || 'Tasks'} ({chores.length})
         </button>
         <button
           className={`btn ${activeTab === 'loot' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('loot')}
           style={{ flex: 1, padding: '1rem' }}
         >
-          <ShoppingBag size={20} /> Loot Shop (Rewards)
+          <Gift size={20} /> {themePack?.rewardsTab || 'Rewards'}
         </button>
       </div>
 

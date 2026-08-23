@@ -1,14 +1,17 @@
 import React from 'react';
 import { Trophy, CheckCircle, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
+import { useThemePack } from '../../context/ThemePackContext';
 
 export default function QuestsTab({ chores, onCompleteChore }) {
+  const { themePack } = useThemePack();
+
   if (chores.length === 0) {
     return (
       <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
         <Trophy size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
-        <h3 style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>All Quests Clear!</h3>
+        <h3 style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>All Clear!</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-          No active chores are scheduled for you today. Take a well-deserved rest!
+          No active {themePack?.taskLabel?.toLowerCase() || 'tasks'} are scheduled for you today. Great job!
         </p>
       </div>
     );
@@ -71,7 +74,7 @@ export default function QuestsTab({ chores, onCompleteChore }) {
                     fontSize: '1.1rem'
                   }}
                 >
-                  🪙 {chore.points}
+                  <span>{themePack?.currencyIcon || '⭐'}</span> {chore.points}
                 </div>
               </div>
 
@@ -109,7 +112,7 @@ export default function QuestsTab({ chores, onCompleteChore }) {
                     fontSize: '0.9rem'
                   }}
                 >
-                  <CheckCircle size={18} /> Quest Complete & Approved!
+                  <CheckCircle size={18} /> {themePack?.taskSingle || 'Task'} Complete & Approved!
                 </div>
               )}
 
@@ -124,7 +127,7 @@ export default function QuestsTab({ chores, onCompleteChore }) {
                     fontSize: '0.9rem'
                   }}
                 >
-                  <Clock size={18} className="logo-icon" /> Under Review by Parents
+                  <Clock size={18} /> Under Review by Parents
                 </div>
               )}
 
@@ -161,7 +164,7 @@ export default function QuestsTab({ chores, onCompleteChore }) {
                     style={{ width: '100%', gap: '0.25rem' }}
                     onClick={() => onCompleteChore(chore.id)}
                   >
-                    Resubmit Quest <ArrowRight size={16} />
+                    Resubmit {themePack?.taskSingle || 'Task'} <ArrowRight size={16} />
                   </button>
                 </div>
               )}
@@ -172,7 +175,7 @@ export default function QuestsTab({ chores, onCompleteChore }) {
                   style={{ width: '100%', gap: '0.25rem' }}
                   onClick={() => onCompleteChore(chore.id)}
                 >
-                  Complete Quest <ArrowRight size={16} />
+                  Complete {themePack?.taskSingle || 'Task'} <ArrowRight size={16} />
                 </button>
               )}
             </div>
@@ -182,3 +185,4 @@ export default function QuestsTab({ chores, onCompleteChore }) {
     </div>
   );
 }
+

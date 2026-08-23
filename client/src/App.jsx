@@ -4,164 +4,28 @@ import KidDashboard from './pages/KidDashboard.jsx';
 import ParentDashboard from './pages/ParentDashboard.jsx';
 import SetupWizard from './pages/SetupWizard.jsx';
 import { ShieldCheck, Sun, Moon } from 'lucide-react';
+import { ThemePackProvider, useThemePack } from './context/ThemePackContext.jsx';
+import { DEFAULT_THEME_PACK } from './theme/themePacks.js';
 
-export default function App() {
-  const [view, setView] = useState('profile_select'); // 'profile_select', 'kid_dashboard', 'parent_dashboard', 'setup_wizard'
-  const [kids, setKids] = useState([]);
-  const [currentKid, setCurrentKid] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [guildName, setGuildName] = useState('ChoreQuest');
-
-  const [householdId, setHouseholdId] = useState(() => localStorage.getItem('cq_household_id'));
-  const [parentToken, setParentToken] = useState(null);
-
-  // Dynamic Light/Dark Theme management
-  const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) return savedTheme;
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return systemPrefersDark ? 'dark' : 'light';
-  });
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e) => {
-      if (!localStorage.getItem('theme')) {
-        setTheme(e.matches ? 'dark' : 'light');
-      }
-    };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
-
-  // Check setup status on mount
-  useEffect(() => {
-    checkSetupStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const checkSetupStatus = async (setupData) => {
-    setLoading(true);
-    try {
-      if (setupData?.householdId) {
-        setHouseholdId(setupData.householdId);
-        localStorage.setItem('cq_household_id', setupData.householdId);
-        if (setupData.guildName) setGuildName(setupData.guildName);
-      }
-      const res = await fetch('/api/setup-status');
-      const data = await res.json();
-      if (data.householdId) {
-        setHouseholdId(data.householdId);
-        localStorage.setItem('cq_household_id', data.householdId);
-      }
-      if (data.guildName) {
-        setGuildName(data.guildName);
-      }
-
-      if (!data.initialized) {
-        localStorage.removeItem('cq_household_id');
-        localStorage.removeItem('cq_device_token');
-        localStorage.removeItem('cq_role');
-        setHouseholdId(null);
-        setView('setup_wizard');
-      } else {
-        if (data.householdId) {
-          setHouseholdId(data.householdId);
-          localStorage.setItem('cq_household_id', data.householdId);
-        }
-        if (data.guildName) {
-          setGuildName(data.guildName);
-        }
-        await fetchKids();
-        await fetchConfig();
-        setView('profile_select');
-      }
-    } catch (err) {
-      console.error('Error checking setup status:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchConfig = async () => {
-    try {
-      const res = await fetch('/api/config');
-      const data = await res.json();
-      if (data.guild_name) {
-        setGuildName(data.guild_name);
-      }
-    } catch (err) {
-      console.error('Error fetching config:', err);
-    }
-  };
-
-  const fetchKids = async () => {
-    try {
-      const res = await fetch('/api/kids');
-      const data = await res.json();
-      setKids(data);
-    } catch (err) {
-      console.error('Error fetching kids profiles:', err);
-    }
-  };
-
-  const handleSelectKid = (kid) => {
-    setCurrentKid(kid);
-    setView('kid_dashboard');
-  };
-
-  const handleSelectParent = (token) => {
-    setParentToken(token);
-    setCurrentKid(null);
-    setView('parent_dashboard');
-  };
-
-  const handleBackToProfiles = () => {
-    setParentToken(null);
-    setCurrentKid(null);
-    setView('profile_select');
-    fetchKids(); // Refresh points/data when returning
-  };
-
-  const handleUpdateKidPoints = (newPoints) => {
-    if (currentKid) {
-      setCurrentKid({ ...currentKid, points: newPoints });
-    }
-    // Update inside kids array too
-    setKids((prevKids) =>
-      prevKids.map((k) => (k.id === currentKid?.id ? { ...k, points: newPoints } : k))
-    );
-  };
-
-  const handleAddKid = async (kidData) => {
-    try {
-      const res = await fetch('/api/kids', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(kidData)
-      });
-      if (res.ok) {
-        await fetchKids(); // Reload kids list
-        return true;
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to add hero.');
-        return false;
-      }
-    } catch (err) {
-      console.error('Error adding kid profile:', err);
-      return false;
-    }
-  };
+function AppContent({
+  view,
+  kids,
+  currentKid,
+  loading,
+  guildName,
+  theme,
+  toggleTheme,
+  householdId,
+  parentToken,
+  handleSelectKid,
+  handleSelectParent,
+  handleBackToProfiles,
+  handleUpdateKidPoints,
+  handleAddKid,
+  checkSetupStatus,
+  fetchKids
+}) {
+  const { themePack } = useThemePack();
 
   if (view === 'setup_wizard') {
     return <SetupWizard onSetupComplete={checkSetupStatus} />;
@@ -172,7 +36,7 @@ export default function App() {
       {/* Global Header */}
       <header className="app-header">
         <div className="brand" onClick={handleBackToProfiles} style={{ cursor: 'pointer' }}>
-          <span className="logo-icon">👑</span>
+          <span className="logo-icon">{themePack?.icon || '👑'}</span>
           <h1>{guildName}</h1>
         </div>
 
@@ -213,7 +77,7 @@ export default function App() {
           {view === 'parent_dashboard' && (
             <div className="user-badge theme-parent" onClick={handleBackToProfiles}>
               <ShieldCheck size={16} style={{ color: 'var(--theme-parent)' }} />
-              <span className="user-name">Parents</span>
+              <span className="user-name">{themePack?.adminLabel || 'Parents'}</span>
             </div>
           )}
         </div>
@@ -242,7 +106,7 @@ export default function App() {
                 margin: '0 auto 1.5rem auto'
               }}
             />
-            <p style={{ color: 'var(--text-muted)' }}>Opening the gates of ChoreQuest...</p>
+            <p style={{ color: 'var(--text-muted)' }}>Opening ChoreQuest...</p>
           </div>
         ) : (
           <>
@@ -294,3 +158,187 @@ export default function App() {
     </div>
   );
 }
+
+export default function App() {
+  const [view, setView] = useState('profile_select');
+  const [kids, setKids] = useState([]);
+  const [currentKid, setCurrentKid] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [guildName, setGuildName] = useState('ChoreQuest');
+  const [themePackId, setThemePackId] = useState(DEFAULT_THEME_PACK);
+
+  const [householdId, setHouseholdId] = useState(() => localStorage.getItem('cq_household_id'));
+  const [parentToken, setParentToken] = useState(null);
+
+  // Dynamic Light/Dark Theme management
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) return savedTheme;
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return systemPrefersDark ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e) => {
+      if (!localStorage.getItem('theme')) {
+        setTheme(e.matches ? 'dark' : 'light');
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  // Check setup status on mount
+  useEffect(() => {
+    checkSetupStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const checkSetupStatus = async (setupData) => {
+    setLoading(true);
+    try {
+      if (setupData?.householdId) {
+        setHouseholdId(setupData.householdId);
+        localStorage.setItem('cq_household_id', setupData.householdId);
+        if (setupData.guildName) setGuildName(setupData.guildName);
+        if (setupData.themePack) setThemePackId(setupData.themePack);
+      }
+      const res = await fetch('/api/setup-status');
+      const data = await res.json();
+      if (data.householdId) {
+        setHouseholdId(data.householdId);
+        localStorage.setItem('cq_household_id', data.householdId);
+      }
+      if (data.guildName) {
+        setGuildName(data.guildName);
+      }
+      if (data.themePack) {
+        setThemePackId(data.themePack);
+      }
+
+      if (!data.initialized) {
+        localStorage.removeItem('cq_household_id');
+        localStorage.removeItem('cq_device_token');
+        localStorage.removeItem('cq_role');
+        setHouseholdId(null);
+        setView('setup_wizard');
+      } else {
+        await fetchKids();
+        await fetchConfig();
+        setView('profile_select');
+      }
+    } catch (err) {
+      console.error('Error checking setup status:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchConfig = async () => {
+    try {
+      const res = await fetch('/api/config');
+      const data = await res.json();
+      if (data.guild_name) {
+        setGuildName(data.guild_name);
+      }
+      if (data.theme_pack) {
+        setThemePackId(data.theme_pack);
+      }
+    } catch (err) {
+      console.error('Error fetching config:', err);
+    }
+  };
+
+  const fetchKids = async () => {
+    try {
+      const res = await fetch('/api/kids');
+      const data = await res.json();
+      setKids(data);
+    } catch (err) {
+      console.error('Error fetching kids profiles:', err);
+    }
+  };
+
+  const handleSelectKid = (kid) => {
+    setCurrentKid(kid);
+    setView('kid_dashboard');
+  };
+
+  const handleSelectParent = (token) => {
+    setParentToken(token);
+    setCurrentKid(null);
+    setView('parent_dashboard');
+  };
+
+  const handleBackToProfiles = () => {
+    setParentToken(null);
+    setCurrentKid(null);
+    setView('profile_select');
+    fetchKids();
+  };
+
+  const handleUpdateKidPoints = (newPoints) => {
+    if (currentKid) {
+      setCurrentKid({ ...currentKid, points: newPoints });
+    }
+    setKids((prevKids) =>
+      prevKids.map((k) => (k.id === currentKid?.id ? { ...k, points: newPoints } : k))
+    );
+  };
+
+  const handleAddKid = async (kidData) => {
+    try {
+      const res = await fetch('/api/kids', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(kidData)
+      });
+      if (res.ok) {
+        await fetchKids();
+        return true;
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to add hero.');
+        return false;
+      }
+    } catch (err) {
+      console.error('Error adding kid profile:', err);
+      return false;
+    }
+  };
+
+  return (
+    <ThemePackProvider initialTheme={themePackId} parentToken={parentToken}>
+      <AppContent
+        view={view}
+        setView={setView}
+        kids={kids}
+        currentKid={currentKid}
+        loading={loading}
+        guildName={guildName}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        householdId={householdId}
+        parentToken={parentToken}
+        handleSelectKid={handleSelectKid}
+        handleSelectParent={handleSelectParent}
+        handleBackToProfiles={handleBackToProfiles}
+        handleUpdateKidPoints={handleUpdateKidPoints}
+        handleAddKid={handleAddKid}
+        checkSetupStatus={checkSetupStatus}
+        fetchKids={fetchKids}
+      />
+    </ThemePackProvider>
+  );
+}
+
