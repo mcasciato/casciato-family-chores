@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
+import { useThemePack } from '../../context/ThemePackContext';
 
-const avatars = ['🧙‍♂️', '🧝‍♀️', '🦁', '🐱', '🦄', '🦖', '🚀', '🐼', '🦊', '🎨', '⚽️', '🎸'];
 const colors = ['violet', 'amber', 'emerald', 'rose', 'blue'];
 
 export default function AddHeroModal({ isOpen, onClose, onSubmit }) {
+  const { themePack } = useThemePack();
+  const avatars = themePack?.avatars || ['🦊', '🐻', '🐼', '🦝', '🦉', '🏕️', '🌲', '🌻'];
+
   const [newKidName, setNewKidName] = useState('');
-  const [newKidAvatar, setNewKidAvatar] = useState('🧙‍♂️');
+  const [newKidAvatar, setNewKidAvatar] = useState(avatars[0] || '🦊');
   const [newKidColor, setNewKidColor] = useState('violet');
   const [newKidPin, setNewKidPin] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setNewKidName('');
-      setNewKidAvatar('🧙‍♂️');
+      setNewKidAvatar(avatars[0] || '🦊');
       setNewKidColor('violet');
       setNewKidPin('');
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, themePack]);
 
   if (!isOpen) return null;
 
@@ -37,7 +41,7 @@ export default function AddHeroModal({ isOpen, onClose, onSubmit }) {
       <div className="glass-card modal-content">
         <div className="modal-header">
           <h3 style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Sparkles size={20} style={{ color: 'var(--theme-violet)' }} /> Summon New Hero
+            <Sparkles size={20} style={{ color: 'var(--theme-violet)' }} /> {themePack?.addMemberLabel || 'Add Member'}
           </h3>
           <button className="modal-close" onClick={onClose}>
             ✕
@@ -48,7 +52,7 @@ export default function AddHeroModal({ isOpen, onClose, onSubmit }) {
           style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
         >
           <div className="input-group">
-            <span className="input-label">Hero Name</span>
+            <span className="input-label">{themePack?.memberLabel || 'Member'} Name</span>
             <input
               type="text"
               className="glass-input"

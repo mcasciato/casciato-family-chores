@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Plus, QrCode } from 'lucide-react';
+import { useThemePack } from '../context/ThemePackContext';
 
 // Import modular components
 import ProfilePinModal from '../components/profile/ProfilePinModal';
@@ -7,6 +8,7 @@ import AddHeroModal from '../components/profile/AddHeroModal';
 import JoinFamilyModal from '../components/pairing/JoinFamilyModal';
 
 export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAddKid, onJoinSuccess }) {
+  const { themePack } = useThemePack();
   const [pinModalKid, setPinModalKid] = useState(null);
   const [pinError, setPinError] = useState('');
   const [isAddingProfile, setIsAddingProfile] = useState(false);
@@ -89,10 +91,10 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
             fontFamily: 'var(--font-display)'
           }}
         >
-          Who is playing today?
+          Who is checking in today?
         </h2>
         <p style={{ color: 'var(--text-muted)' }}>
-          Select your profile to check your Quests or claim your Loot!
+          {themePack?.memberSelectPrompt || 'Select your profile to check your daily tasks or rewards!'}
         </p>
       </div>
 
@@ -106,12 +108,12 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
             <div className="avatar-circle">{kid.avatar}</div>
             <h3 style={{ fontSize: '1.4rem', marginBottom: '0.25rem' }}>{kid.name}</h3>
             <span style={{ fontSize: '0.9rem', color: 'var(--accent)', fontWeight: 600 }}>
-              🪙 {kid.points} Gold
+              {themePack?.currencyIcon || '⭐'} {kid.points} {themePack?.currencyName || 'Points'}
             </span>
           </div>
         ))}
 
-        {/* Add Hero Profile Card */}
+        {/* Add Member Profile Card */}
         <div
           className="glass-card profile-card"
           style={{ borderStyle: 'dashed', opacity: 0.7 }}
@@ -121,7 +123,7 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
             <Plus size={40} style={{ color: 'var(--text-muted)' }} />
           </div>
           <h3 style={{ fontSize: '1.4rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-            Add Hero
+            {themePack?.addMemberLabel || 'Add Member'}
           </h3>
           <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Create Profile</span>
         </div>
@@ -136,7 +138,7 @@ export default function ProfileSelect({ kids, onSelectKid, onSelectParent, onAdd
         >
           <ShieldCheck size={20} style={{ color: 'var(--theme-parent)' }} />
           <span className="user-name" style={{ fontSize: '1rem' }}>
-            Parent Command Center
+            {themePack?.adminLabel || 'Parent Command'}
           </span>
         </button>
 

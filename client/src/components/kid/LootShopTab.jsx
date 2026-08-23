@@ -1,14 +1,17 @@
 import React from 'react';
 import { ShoppingBag, Award } from 'lucide-react';
+import { useThemePack } from '../../context/ThemePackContext';
 
 export default function LootShopTab({ rewards, kidPoints, onRedeemReward }) {
+  const { themePack } = useThemePack();
+
   if (rewards.length === 0) {
     return (
       <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
         <ShoppingBag size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
-        <h3 style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>Loot Shop Empty</h3>
+        <h3 style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>{themePack?.rewardLabel || 'Reward Shop'} Empty</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-          There are currently no rewards stocked. Remind parents to add some loot!
+          There are currently no rewards stocked. Remind parents to add some rewards!
         </p>
       </div>
     );
@@ -64,7 +67,7 @@ export default function LootShopTab({ rewards, kidPoints, onRedeemReward }) {
                     fontSize: '1.1rem'
                   }}
                 >
-                  🪙 {reward.points_cost}
+                  <span>{themePack?.currencyIcon || '⭐'}</span> {reward.points_cost}
                 </div>
               </div>
 

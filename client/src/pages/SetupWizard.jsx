@@ -1,14 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Crown, QrCode, ShieldCheck, Copy, Check, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Copy, Check, ArrowRight } from 'lucide-react';
 import QRCode from 'qrcode';
 
 // Import modular components
+import SetupVibeStep from '../components/setup/SetupVibeStep';
 import SetupGuildStep from '../components/setup/SetupGuildStep';
 import SetupHeroStep from '../components/setup/SetupHeroStep';
 import JoinFamilyModal from '../components/pairing/JoinFamilyModal';
+import { DEFAULT_THEME_PACK, getThemePack } from '../theme/themePacks';
 
 export default function SetupWizard({ onSetupComplete }) {
   const [step, setStep] = useState(1);
+  const [selectedTheme, setSelectedTheme] = useState(DEFAULT_THEME_PACK);
+
   const [guildName, setGuildName] = useState('');
   const [parentPin, setParentPin] = useState('');
   const [parentPinConfirm, setParentPinConfirm] = useState('');
@@ -16,7 +20,7 @@ export default function SetupWizard({ onSetupComplete }) {
   const [kidName, setKidName] = useState('');
   const [kidPin, setKidPin] = useState('');
   const [kidTheme, setKidTheme] = useState('violet');
-  const [kidAvatar, setKidAvatar] = useState('⚔️');
+  const [kidAvatar, setKidAvatar] = useState('🦊');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,7 +30,9 @@ export default function SetupWizard({ onSetupComplete }) {
 
   const canvasRef = useRef(null);
 
-  const avatars = ['⚔️', '🛡️', '🚀', '🦄', '🦖', '🦁', '🐼', '🦊', '🧙‍♂️', '🧝‍♀️'];
+  const currentThemePack = getThemePack(selectedTheme);
+  const avatars = currentThemePack.avatars;
+
   const themes = [
     { name: 'violet', class: 'from-purple-500 to-indigo-600', color: '#7c3aed' },
     { name: 'blue', class: 'from-blue-500 to-cyan-600', color: '#0ea5e9' },
@@ -35,8 +41,16 @@ export default function SetupWizard({ onSetupComplete }) {
     { name: 'amber', class: 'from-amber-500 to-orange-600', color: '#f59e0b' }
   ];
 
+  const handleSelectTheme = (themeId) => {
+    setSelectedTheme(themeId);
+    const pack = getThemePack(themeId);
+    if (pack.avatars && pack.avatars.length > 0) {
+      setKidAvatar(pack.avatars[0]);
+    }
+  };
+
   useEffect(() => {
-    if (step === 3 && createdData && canvasRef.current) {
+    if (step === 4 && createdData && canvasRef.current) {
       QRCode.toCanvas(
         canvasRef.current,
         JSON.stringify({ v: 1, type: 'recovery', hid: createdData.householdId, key: createdData.recoveryKey }),
@@ -52,33 +66,35 @@ export default function SetupWizard({ onSetupComplete }) {
     }
   }, [step, createdData]);
 
-  const handleNextStep = () => {
+  const handleStep1Next = () => {
+    setStep(2);
+  };
+
+  const handleStep2Next = () => {
     setError('');
-    if (step === 1) {
-      if (!guildName.trim()) {
-        setError('Please enter a name for your Family Guild!');
-        return;
-      }
-      if (parentPin.length !== 4 || !/^\d+$/.test(parentPin)) {
-        setError('Parent PIN must be exactly 4 digits.');
-        return;
-      }
-      if (parentPin !== parentPinConfirm) {
-        setError('Parent PINs do not match.');
-        return;
-      }
-      setStep(2);
+    if (!guildName.trim()) {
+      setError(`Please enter a name for your ${currentThemePack.householdLabel}!`);
+      return;
     }
+    if (parentPin.length !== 4 || !/^\d+$/.test(parentPin)) {
+      setError('Parent PIN must be exactly 4 digits.');
+      return;
+    }
+    if (parentPin !== parentPinConfirm) {
+      setError('Parent PINs do not match.');
+      return;
+    }
+    setStep(3);
   };
 
   const handleSubmit = async () => {
     setError('');
     if (!kidName.trim()) {
-      setError("Please enter your Hero's name!");
+      setError(`Please enter your ${currentThemePack.memberLabel}'s name!`);
       return;
     }
     if (kidPin.length !== 4 || !/^\d+$/.test(kidPin)) {
-      setError("Hero's PIN must be exactly 4 digits.");
+      setError(`${currentThemePack.memberLabel} PIN must be exactly 4 digits.`);
       return;
     }
 
@@ -90,6 +106,7 @@ export default function SetupWizard({ onSetupComplete }) {
         body: JSON.stringify({
           guild_name: guildName.trim(),
           parent_pin: parentPin,
+          theme_pack: selectedTheme,
           device_name: 'Master Parent Device',
           kid: {
             name: kidName.trim(),
@@ -110,9 +127,10 @@ export default function SetupWizard({ onSetupComplete }) {
       localStorage.setItem('cq_device_token', data.deviceToken);
       localStorage.setItem('cq_role', 'parent');
       localStorage.setItem('cq_guild_name', data.guildName);
+      localStorage.setItem('cq_theme_pack', data.themePack || selectedTheme);
 
       setCreatedData(data);
-      setStep(3); // Advance to Recovery Kit step
+      setStep(4); // Advance to Recovery Kit step
     } catch (err) {
       setError(err.message);
     } finally {
@@ -144,22 +162,26 @@ export default function SetupWizard({ onSetupComplete }) {
         {/* Header */}
         <div className="setup-header">
           <div className="logo-badge">
-            <Crown className="logo-icon" size={32} />
+            <span style={{ fontSize: '2rem' }}>{currentThemePack.icon}</span>
           </div>
           <h1>ChoreQuest</h1>
           <p className="subtitle">
-            {step === 3 ? 'Guild Created Successfully!' : 'First-Time Setup'}
+            {step === 4 ? `${currentThemePack.householdLabel} Created!` : 'Family Setup Wizard'}
           </p>
         </div>
 
         {/* Progress Bar */}
-        {step < 3 && (
+        {step < 4 && (
           <div className="progress-bar-container">
-            <div className={`progress-step ${step >= 1 ? 'active' : ''}`}>1. The Guild</div>
+            <div className={`progress-step ${step >= 1 ? 'active' : ''}`}>1. Vibe</div>
             <div className="progress-line">
-              <div className={`progress-line-fill ${step === 2 ? 'full' : ''}`} />
+              <div className={`progress-line-fill ${step >= 2 ? 'full' : ''}`} />
             </div>
-            <div className={`progress-step ${step >= 2 ? 'active' : ''}`}>2. First Hero</div>
+            <div className={`progress-step ${step >= 2 ? 'active' : ''}`}>2. Family</div>
+            <div className="progress-line">
+              <div className={`progress-line-fill ${step >= 3 ? 'full' : ''}`} />
+            </div>
+            <div className={`progress-step ${step >= 3 ? 'active' : ''}`}>3. Member</div>
           </div>
         )}
 
@@ -167,37 +189,31 @@ export default function SetupWizard({ onSetupComplete }) {
 
         {/* Step Views */}
         {step === 1 && (
-          <>
-            <SetupGuildStep
-              guildName={guildName}
-              setGuildName={setGuildName}
-              parentPin={parentPin}
-              setParentPin={setParentPin}
-              parentPinConfirm={parentPinConfirm}
-              setParentPinConfirm={setParentPinConfirm}
-              onNext={handleNextStep}
-            />
-
-            {/* Quick Join Option for Kids / Secondary Devices */}
-            <div style={{ marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1.25rem', textAlign: 'center' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-                Joining a family that already set up ChoreQuest?
-              </p>
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => setIsJoinModalOpen(true)}
-                style={{ margin: '0 auto', fontSize: '0.9rem', gap: '0.5rem' }}
-              >
-                <QrCode size={16} />
-                <span>Join Existing Family (Scan or Code)</span>
-              </button>
-            </div>
-          </>
+          <SetupVibeStep
+            selectedTheme={selectedTheme}
+            onSelectTheme={handleSelectTheme}
+            onNext={handleStep1Next}
+            onOpenJoinModal={() => setIsJoinModalOpen(true)}
+          />
         )}
 
         {step === 2 && (
+          <SetupGuildStep
+            themePack={currentThemePack}
+            guildName={guildName}
+            setGuildName={setGuildName}
+            parentPin={parentPin}
+            setParentPin={setParentPin}
+            parentPinConfirm={parentPinConfirm}
+            setParentPinConfirm={setParentPinConfirm}
+            onBack={() => setStep(1)}
+            onNext={handleStep2Next}
+          />
+        )}
+
+        {step === 3 && (
           <SetupHeroStep
+            themePack={currentThemePack}
             kidName={kidName}
             setKidName={setKidName}
             kidPin={kidPin}
@@ -209,12 +225,12 @@ export default function SetupWizard({ onSetupComplete }) {
             avatars={avatars}
             themes={themes}
             loading={loading}
-            onBack={() => setStep(1)}
+            onBack={() => setStep(2)}
             onSubmit={handleSubmit}
           />
         )}
 
-        {step === 3 && createdData && (
+        {step === 4 && createdData && (
           <div style={{ textAlign: 'center', marginTop: '1rem' }}>
             <div style={{ display: 'inline-flex', padding: '0.5rem 1rem', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '20px', color: '#10b981', fontWeight: 700, fontSize: '0.9rem', marginBottom: '1rem', alignItems: 'center', gap: '0.5rem' }}>
               <ShieldCheck size={18} />
@@ -281,4 +297,5 @@ export default function SetupWizard({ onSetupComplete }) {
     </div>
   );
 }
+
 

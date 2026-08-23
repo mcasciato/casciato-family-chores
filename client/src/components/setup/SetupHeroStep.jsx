@@ -1,6 +1,7 @@
 import React from 'react';
 
 export default function SetupHeroStep({
+  themePack,
   kidName,
   setKidName,
   kidPin,
@@ -17,14 +18,14 @@ export default function SetupHeroStep({
 }) {
   return (
     <div className="setup-form-step">
-      <h2>⚔️ Summon Your First Hero</h2>
+      <h2>{themePack?.icon || '🌟'} Add Your First {themePack?.memberLabel || 'Member'}</h2>
       <p className="description">
         Create a profile for your first child. They will log in using their own 4-digit PIN to
-        check off chores and earn coins!
+        check off daily tasks and earn {themePack?.currencyName || 'points'}!
       </p>
 
       <div className="input-group">
-        <label>Hero's Name</label>
+        <label>{themePack?.memberLabel || 'Member'}'s Name</label>
         <input
           type="text"
           placeholder="e.g., Mac"
@@ -34,7 +35,7 @@ export default function SetupHeroStep({
       </div>
 
       <div className="input-group">
-        <label>Hero PIN (4 digits)</label>
+        <label>{themePack?.memberLabel || 'Member'} PIN (4 digits)</label>
         <input
           type="password"
           maxLength={4}
@@ -63,7 +64,7 @@ export default function SetupHeroStep({
 
       {/* Theme Selector */}
       <div className="input-group">
-        <label>Choose Color Theme</label>
+        <label>Choose Color Accent</label>
         <div className="setup-theme-row">
           {themes.map((th) => (
             <button
@@ -87,9 +88,10 @@ export default function SetupHeroStep({
           onClick={onSubmit}
           disabled={loading}
         >
-          {loading ? 'Initializing Guild...' : 'Complete Onboarding! 🚀'}
+          {loading ? 'Creating Household...' : `Complete Setup! ${themePack?.icon || '🚀'}`}
         </button>
       </div>
     </div>
   );
 }
+

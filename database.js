@@ -146,6 +146,7 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS households (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      theme_pack TEXT DEFAULT 'nature',
       parent_pin_hash TEXT NOT NULL,
       parent_pin_salt TEXT NOT NULL,
       recovery_key TEXT NOT NULL UNIQUE,
@@ -277,6 +278,16 @@ async function runMigrations() {
       } catch (err) {
         logger.error(`Failed to alter table ${table}:`, err.message);
       }
+    }
+  }
+
+  // Check if households has theme_pack
+  const hasThemePack = await hasColumn('households', 'theme_pack');
+  if (!hasThemePack) {
+    try {
+      await run("ALTER TABLE households ADD COLUMN theme_pack TEXT DEFAULT 'nature'");
+    } catch (err) {
+      logger.warn('Failed to alter households for theme_pack:', err.message);
     }
   }
 
