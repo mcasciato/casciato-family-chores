@@ -1,6 +1,6 @@
 {
   "name": "chore-quest",
-  "version": "1.6.2",
+  "version": "1.7.0",
   "description": "Premium Kid's Chore Tracker for Raspberry Pi",
   "main": "server.js",
   "scripts": {

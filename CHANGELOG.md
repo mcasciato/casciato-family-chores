@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.6.2...v1.7.0) (2026-08-23)
+
+
+### Features
+
+* **auth:** implement account-less family pairing, QR sync, and disaster recovery ([#28](https://github.com/mcasciato/casciato-family-chores/issues/28)) ([e16cfa3](https://github.com/mcasciato/casciato-family-chores/commit/e16cfa3469501f5b5d722eb4bc2e2945e80f8e13))
+
 ## [1.6.2](https://github.com/mcasciato/casciato-family-chores/compare/v1.6.1...v1.6.2) (2026-06-24)
 
 
