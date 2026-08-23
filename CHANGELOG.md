@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/mcasciato/casciato-family-chores/compare/v1.8.0...v1.8.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* **auth:** resolve kid and parent PIN migration, proxy rate limiting, and points adjustment ([#32](https://github.com/mcasciato/casciato-family-chores/issues/32)) ([5a80dc6](https://github.com/mcasciato/casciato-family-chores/commit/5a80dc613f5f1fbde64f3a4e173c80e0aecaf256))
+
 ## [1.8.0](https://github.com/mcasciato/casciato-family-chores/compare/v1.7.0...v1.8.0) (2026-08-23)
 
 
