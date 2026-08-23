@@ -228,25 +228,25 @@ app.post(
     await dbManager.transaction(async () => {
       // 1. Insert household
       await dbManager.run(
-        'INSERT INTO households (id, name, theme_pack, parent_pin_hash, parent_pin_salt, recovery_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [householdId, guild_name.trim(), chosenTheme, parentHash, parentSalt, recoveryKey, createdAt]
+        'INSERT INTO households (id, name, theme_pack, parent_pin_hash, parent_pin_salt, recovery_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [householdId, guild_name.trim(), chosenTheme, parentHash, parentSalt, recoveryKey, createdAt, createdAt]
       );
 
       // 2. Store settings
       await dbManager.run(
-        "INSERT OR REPLACE INTO settings (household_id, key, value) VALUES (?, 'guild_name', ?)",
-        [householdId, guild_name.trim()]
+        "INSERT OR REPLACE INTO settings (household_id, key, value, updated_at) VALUES (?, 'guild_name', ?, ?)",
+        [householdId, guild_name.trim(), createdAt]
       );
       await dbManager.run(
-        "INSERT OR REPLACE INTO settings (household_id, key, value) VALUES (?, 'theme_pack', ?)",
-        [householdId, chosenTheme]
+        "INSERT OR REPLACE INTO settings (household_id, key, value, updated_at) VALUES (?, 'theme_pack', ?, ?)",
+        [householdId, chosenTheme, createdAt]
       );
 
       // 3. Create initial hero
       const { hash: kidHash, salt: kidSalt } = dbManager.hashPin(kid.pin || '1234');
       await dbManager.run(
-        'INSERT INTO kids (household_id, name, avatar, color_theme, pin_hash, pin_salt) VALUES (?, ?, ?, ?, ?, ?)',
-        [householdId, kid.name.trim(), kid.avatar, kid.color_theme || 'purple', kidHash, kidSalt]
+        'INSERT INTO kids (household_id, name, avatar, color_theme, pin_hash, pin_salt, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [householdId, kid.name.trim(), kid.avatar, kid.color_theme || 'purple', kidHash, kidSalt, createdAt, createdAt]
       );
 
       // 4. Seed default quests and rewards for this family
@@ -256,8 +256,8 @@ app.post(
     // 5. Generate device token for creator device (parent role)
     const deviceToken = crypto.randomBytes(24).toString('hex');
     await dbManager.run(
-      'INSERT INTO devices (token, household_id, role, device_name, last_seen_at, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-      [deviceToken, householdId, 'parent', device_name || 'Master Parent Device', new Date().toISOString(), new Date().toISOString()]
+      'INSERT INTO devices (token, household_id, role, device_name, last_seen_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [deviceToken, householdId, 'parent', device_name || 'Master Parent Device', createdAt, createdAt, createdAt]
     );
 
     // 6. Generate active parent session token
@@ -336,13 +336,13 @@ app.post(
 
     const cleanCode = code.trim().toUpperCase();
     const pairing = await dbManager.get(
-      'SELECT * FROM pairing_codes WHERE code = ? AND expires_at > ?',
+      'SELECT * FROM pairing_codes WHERE code = ? AND expires_at > ? AND used_at IS NULL',
       [cleanCode, new Date().toISOString()]
     );
 
     if (!pairing) {
       return res.status(400).json({
-        error: 'Invalid or expired pairing code. Please generate a fresh code on the parent device.'
+        error: 'Invalid, used, or expired pairing code. Please generate a fresh code on the parent device.'
       });
     }
 
@@ -354,18 +354,26 @@ app.post(
       return res.status(404).json({ error: 'Household not found.' });
     }
 
+    const now = new Date().toISOString();
     const deviceToken = crypto.randomBytes(24).toString('hex');
-    await dbManager.run(
-      'INSERT INTO devices (token, household_id, role, device_name, last_seen_at, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-      [
-        deviceToken,
-        household.id,
-        pairing.role,
-        device_name || `${pairing.role === 'parent' ? 'Co-Parent' : 'Hero'} Device`,
-        new Date().toISOString(),
-        new Date().toISOString()
-      ]
-    );
+    await dbManager.transaction(async () => {
+      await dbManager.run(
+        'UPDATE pairing_codes SET used_at = ? WHERE code = ?',
+        [now, cleanCode]
+      );
+      await dbManager.run(
+        'INSERT INTO devices (token, household_id, role, device_name, last_seen_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [
+          deviceToken,
+          household.id,
+          pairing.role,
+          device_name || `${pairing.role === 'parent' ? 'Co-Parent' : 'Hero'} Device`,
+          now,
+          now,
+          now
+        ]
+      );
+    });
 
     res.json({
       success: true,
@@ -406,16 +414,18 @@ app.post(
 
     clearFailedAttempts(req);
 
+    const now = new Date().toISOString();
     const deviceToken = crypto.randomBytes(24).toString('hex');
     await dbManager.run(
-      'INSERT INTO devices (token, household_id, role, device_name, last_seen_at, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO devices (token, household_id, role, device_name, last_seen_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [
         deviceToken,
         household.id,
         'parent',
         device_name || 'Restored Parent Device',
-        new Date().toISOString(),
-        new Date().toISOString()
+        now,
+        now,
+        now
       ]
     );
 
@@ -523,13 +533,15 @@ app.put(
       return res.status(400).json({ error: 'Invalid theme pack selection.' });
     }
 
-    await dbManager.run('UPDATE households SET theme_pack = ? WHERE id = ?', [
+    const now = new Date().toISOString();
+    await dbManager.run('UPDATE households SET theme_pack = ?, updated_at = ? WHERE id = ?', [
       theme_pack,
+      now,
       req.householdId
     ]);
     await dbManager.run(
-      "INSERT OR REPLACE INTO settings (household_id, key, value) VALUES (?, 'theme_pack', ?)",
-      [req.householdId, theme_pack]
+      "INSERT OR REPLACE INTO settings (household_id, key, value, updated_at) VALUES (?, 'theme_pack', ?, ?)",
+      [req.householdId, theme_pack, now]
     );
 
     res.json({ success: true, theme_pack });
@@ -546,11 +558,11 @@ app.get(
   asyncHandler(async (req, res) => {
     const kids = req.householdId
       ? await dbManager.all(
-          'SELECT id, name, avatar, points, color_theme FROM kids WHERE household_id = ? ORDER BY name ASC',
+          'SELECT id, name, avatar, points, color_theme, last_active_at, created_at, updated_at FROM kids WHERE household_id = ? ORDER BY name ASC',
           [req.householdId]
         )
       : await dbManager.all(
-          'SELECT id, name, avatar, points, color_theme FROM kids ORDER BY name ASC'
+          'SELECT id, name, avatar, points, color_theme, last_active_at, created_at, updated_at FROM kids ORDER BY name ASC'
         );
     res.json(kids);
   })
@@ -563,7 +575,7 @@ app.get(
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const kid = await dbManager.get(
-      'SELECT id, name, avatar, points, color_theme FROM kids WHERE id = ? AND household_id = ?',
+      'SELECT id, name, avatar, points, color_theme, last_active_at, created_at, updated_at FROM kids WHERE id = ? AND household_id = ?',
       [id, req.householdId]
     );
     if (!kid) {
@@ -585,14 +597,15 @@ app.post(
 
     const pinToHash = pin || '1234';
     const { hash, salt } = dbManager.hashPin(pinToHash);
+    const now = new Date().toISOString();
 
     const result = await dbManager.run(
-      'INSERT INTO kids (household_id, name, avatar, color_theme, pin_hash, pin_salt) VALUES (?, ?, ?, ?, ?, ?)',
-      [req.householdId, name, avatar, color_theme || 'purple', hash, salt]
+      'INSERT INTO kids (household_id, name, avatar, color_theme, pin_hash, pin_salt, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.householdId, name, avatar, color_theme || 'purple', hash, salt, now, now]
     );
 
     const newKid = await dbManager.get(
-      'SELECT id, name, avatar, points, color_theme FROM kids WHERE id = ?',
+      'SELECT id, name, avatar, points, color_theme, created_at, updated_at FROM kids WHERE id = ?',
       [result.id]
     );
     res.status(201).json(newKid);
@@ -619,23 +632,26 @@ app.put(
     const updatedAvatar = avatar !== undefined ? avatar : kid.avatar;
     const updatedTheme = color_theme !== undefined ? color_theme : kid.color_theme;
     const updatedPoints = points !== undefined ? points : kid.points;
+    const now = new Date().toISOString();
 
     let updatedHash = kid.pin_hash;
     let updatedSalt = kid.pin_salt;
+    let updatedPinChangedAt = kid.pin_changed_at;
 
     if (pin !== undefined && pin !== '') {
       const hashed = dbManager.hashPin(pin);
       updatedHash = hashed.hash;
       updatedSalt = hashed.salt;
+      updatedPinChangedAt = now;
     }
 
     await dbManager.run(
-      'UPDATE kids SET name = ?, avatar = ?, color_theme = ?, pin_hash = ?, pin_salt = ?, points = ? WHERE id = ? AND household_id = ?',
-      [updatedName, updatedAvatar, updatedTheme, updatedHash, updatedSalt, updatedPoints, id, req.householdId]
+      'UPDATE kids SET name = ?, avatar = ?, color_theme = ?, pin_hash = ?, pin_salt = ?, pin_changed_at = ?, points = ?, updated_at = ? WHERE id = ? AND household_id = ?',
+      [updatedName, updatedAvatar, updatedTheme, updatedHash, updatedSalt, updatedPinChangedAt, updatedPoints, now, id, req.householdId]
     );
 
     const updatedKid = await dbManager.get(
-      'SELECT id, name, avatar, points, color_theme FROM kids WHERE id = ?',
+      'SELECT id, name, avatar, points, color_theme, created_at, updated_at FROM kids WHERE id = ?',
       [id]
     );
     res.json(updatedKid);
@@ -666,9 +682,10 @@ app.post(
       const legacyPin = (kid.pin !== undefined && kid.pin !== null && kid.pin !== '') ? String(kid.pin) : '1234';
       if (!kid.pin_hash || pin === legacyPin || pin === '1234') {
         const { hash, salt } = dbManager.hashPin(pin || legacyPin);
-        await dbManager.run('UPDATE kids SET pin_hash = ?, pin_salt = ? WHERE id = ?', [
+        await dbManager.run('UPDATE kids SET pin_hash = ?, pin_salt = ?, updated_at = ? WHERE id = ?', [
           hash,
           salt,
+          new Date().toISOString(),
           id
         ]);
         verified = true;
@@ -677,6 +694,9 @@ app.post(
 
     if (verified) {
       clearFailedAttempts(req);
+      dbManager
+        .run('UPDATE kids SET last_active_at = ? WHERE id = ?', [new Date().toISOString(), id])
+        .catch(() => {});
       res.json({ success: true });
     } else {
       registerFailedAttempt(req);
@@ -736,9 +756,10 @@ app.post(
       if (household && pin) {
         const { hash: newHash, salt: newSalt } = dbManager.hashPin(pin);
         if (household.parent_pin_hash !== newHash) {
+          const now = new Date().toISOString();
           await dbManager.run(
-            'UPDATE households SET parent_pin_hash = ?, parent_pin_salt = ? WHERE id = ?',
-            [newHash, newSalt, household.id]
+            'UPDATE households SET parent_pin_hash = ?, parent_pin_salt = ?, pin_changed_at = ?, updated_at = ? WHERE id = ?',
+            [newHash, newSalt, now, now, household.id]
           );
         }
       }
@@ -775,14 +796,18 @@ app.post(
     }
 
     const newPoints = Math.max(0, kid.points + adjustment);
-    await dbManager.run('UPDATE kids SET points = ? WHERE id = ?', [newPoints, id]);
+    await dbManager.run('UPDATE kids SET points = ?, updated_at = ? WHERE id = ?', [
+      newPoints,
+      new Date().toISOString(),
+      id
+    ]);
 
     logger.info(
       `Adjusted points for kid ${kid.name} (${id}) by ${adjustment > 0 ? '+' : ''}${adjustment}. New total: ${newPoints}. Reason: ${reason || 'Manual Adjustment'}`
     );
 
     const updatedKid = await dbManager.get(
-      'SELECT id, name, avatar, points, color_theme FROM kids WHERE id = ?',
+      'SELECT id, name, avatar, points, color_theme, created_at, updated_at FROM kids WHERE id = ?',
       [id]
     );
     res.json(updatedKid);
@@ -844,8 +869,9 @@ app.post(
       return res.status(400).json({ error: 'Title and points are required.' });
     }
 
+    const now = new Date().toISOString();
     const result = await dbManager.run(
-      'INSERT INTO chores (household_id, title, description, points, schedule_type, schedule_days, assigned_to) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO chores (household_id, title, description, points, schedule_type, schedule_days, assigned_to, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         req.householdId,
         title,
@@ -853,7 +879,9 @@ app.post(
         points,
         schedule_type || 'daily',
         schedule_days || null,
-        assigned_to || null
+        assigned_to || null,
+        now,
+        now
       ]
     );
 
@@ -886,9 +914,10 @@ app.put(
     const updatedDays = schedule_days !== undefined ? schedule_days : chore.schedule_days;
     const updatedAssigned = assigned_to !== undefined ? assigned_to : chore.assigned_to;
     const updatedActive = is_active !== undefined ? is_active : chore.is_active;
+    const now = new Date().toISOString();
 
     await dbManager.run(
-      'UPDATE chores SET title = ?, description = ?, points = ?, schedule_type = ?, schedule_days = ?, assigned_to = ?, is_active = ? WHERE id = ? AND household_id = ?',
+      'UPDATE chores SET title = ?, description = ?, points = ?, schedule_type = ?, schedule_days = ?, assigned_to = ?, is_active = ?, updated_at = ? WHERE id = ? AND household_id = ?',
       [
         updatedTitle,
         updatedDesc,
@@ -897,6 +926,7 @@ app.put(
         updatedDays,
         updatedAssigned,
         updatedActive,
+        now,
         id,
         req.householdId
       ]
@@ -1032,6 +1062,8 @@ app.post(
       [chore_id, kid_id, completed_date]
     );
 
+    const now = new Date().toISOString();
+
     if (existing) {
       if (existing.status === 'approved') {
         return res
@@ -1040,8 +1072,8 @@ app.post(
       }
 
       await dbManager.run(
-        "UPDATE chore_completions SET status = 'pending', completed_at = ?, feedback = NULL WHERE id = ?",
-        [new Date().toISOString(), existing.id]
+        "UPDATE chore_completions SET status = 'pending', completed_at = ?, feedback = NULL, updated_at = ? WHERE id = ?",
+        [now, now, existing.id]
       );
       const updated = await dbManager.get('SELECT * FROM chore_completions WHERE id = ?', [
         existing.id
@@ -1050,8 +1082,8 @@ app.post(
     }
 
     const result = await dbManager.run(
-      "INSERT INTO chore_completions (household_id, chore_id, kid_id, completed_date, status, completed_at) VALUES (?, ?, ?, ?, 'pending', ?)",
-      [req.householdId, chore_id, kid_id, completed_date, new Date().toISOString()]
+      "INSERT INTO chore_completions (household_id, chore_id, kid_id, completed_date, status, completed_at, updated_at) VALUES (?, ?, ?, ?, 'pending', ?, ?)",
+      [req.householdId, chore_id, kid_id, completed_date, now, now]
     );
 
     const newCompletion = await dbManager.get('SELECT * FROM chore_completions WHERE id = ?', [
@@ -1120,14 +1152,16 @@ app.put(
       return res.status(404).json({ error: 'Associated chore or kid profile not found.' });
     }
 
+    const now = new Date().toISOString();
     await dbManager.transaction(async () => {
       await dbManager.run(
-        "UPDATE chore_completions SET status = 'approved', approved_at = ? WHERE id = ?",
-        [new Date().toISOString(), id]
+        "UPDATE chore_completions SET status = 'approved', approved_at = ?, updated_at = ? WHERE id = ?",
+        [now, now, id]
       );
       const newPoints = kid.points + chore.points;
-      await dbManager.run('UPDATE kids SET points = ? WHERE id = ?', [
+      await dbManager.run('UPDATE kids SET points = ?, updated_at = ? WHERE id = ?', [
         newPoints,
+        now,
         completion.kid_id
       ]);
     });
@@ -1155,17 +1189,19 @@ app.put(
       [req.householdId]
     );
 
+    const now = new Date().toISOString();
     await dbManager.transaction(async () => {
       for (const completion of pending) {
         await dbManager.run(
-          "UPDATE chore_completions SET status = 'approved', approved_at = ? WHERE id = ?",
-          [new Date().toISOString(), completion.id]
+          "UPDATE chore_completions SET status = 'approved', approved_at = ?, updated_at = ? WHERE id = ?",
+          [now, now, completion.id]
         );
         const kid = await dbManager.get('SELECT points FROM kids WHERE id = ?', [completion.kid_id]);
         if (kid) {
           const newPoints = kid.points + completion.points;
-          await dbManager.run('UPDATE kids SET points = ? WHERE id = ?', [
+          await dbManager.run('UPDATE kids SET points = ?, updated_at = ? WHERE id = ?', [
             newPoints,
+            now,
             completion.kid_id
           ]);
         }
@@ -1192,9 +1228,10 @@ app.put(
       return res.status(404).json({ error: 'Chore completion record not found.' });
     }
 
+    const now = new Date().toISOString();
     await dbManager.run(
-      "UPDATE chore_completions SET status = 'rejected', feedback = ? WHERE id = ?",
-      [feedback || 'Please redo this task.', id]
+      "UPDATE chore_completions SET status = 'rejected', feedback = ?, rejected_at = ?, updated_at = ? WHERE id = ?",
+      [feedback || 'Please redo this task.', now, now, id]
     );
 
     const updatedCompletion = await dbManager.get('SELECT * FROM chore_completions WHERE id = ?', [
@@ -1220,11 +1257,12 @@ app.put(
       [req.householdId]
     );
 
+    const now = new Date().toISOString();
     await dbManager.transaction(async () => {
       for (const completion of pending) {
         await dbManager.run(
-          "UPDATE chore_completions SET status = 'rejected', approved_at = ? WHERE id = ?",
-          [new Date().toISOString(), completion.id]
+          "UPDATE chore_completions SET status = 'rejected', rejected_at = ?, updated_at = ? WHERE id = ?",
+          [now, now, completion.id]
         );
       }
     });
@@ -1263,9 +1301,10 @@ app.post(
       return res.status(400).json({ error: 'Title and points cost are required.' });
     }
 
+    const now = new Date().toISOString();
     const result = await dbManager.run(
-      'INSERT INTO rewards (household_id, title, description, points_cost) VALUES (?, ?, ?, ?)',
-      [req.householdId, title, description || '', points_cost]
+      'INSERT INTO rewards (household_id, title, description, points_cost, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.householdId, title, description || '', points_cost, now, now]
     );
 
     const newReward = await dbManager.get('SELECT * FROM rewards WHERE id = ?', [result.id]);
@@ -1293,10 +1332,11 @@ app.put(
     const updatedDesc = description !== undefined ? description : reward.description;
     const updatedCost = points_cost !== undefined ? points_cost : reward.points_cost;
     const updatedActive = is_active !== undefined ? is_active : reward.is_active;
+    const now = new Date().toISOString();
 
     await dbManager.run(
-      'UPDATE rewards SET title = ?, description = ?, points_cost = ?, is_active = ? WHERE id = ? AND household_id = ?',
-      [updatedTitle, updatedDesc, updatedCost, updatedActive, id, req.householdId]
+      'UPDATE rewards SET title = ?, description = ?, points_cost = ?, is_active = ?, updated_at = ? WHERE id = ? AND household_id = ?',
+      [updatedTitle, updatedDesc, updatedCost, updatedActive, now, id, req.householdId]
     );
 
     const updatedReward = await dbManager.get('SELECT * FROM rewards WHERE id = ?', [id]);
@@ -1351,16 +1391,17 @@ app.post(
     }
 
     let redemptionId = null;
+    const now = new Date().toISOString();
 
     await dbManager.transaction(async () => {
       const result = await dbManager.run(
-        "INSERT INTO reward_redemptions (household_id, reward_id, kid_id, redeemed_at, status) VALUES (?, ?, ?, ?, 'pending')",
-        [req.householdId, reward_id, kid_id, new Date().toISOString()]
+        "INSERT INTO reward_redemptions (household_id, reward_id, kid_id, redeemed_at, status, updated_at) VALUES (?, ?, ?, ?, 'pending', ?)",
+        [req.householdId, reward_id, kid_id, now, now]
       );
       redemptionId = result.id;
 
       const newPoints = kid.points - reward.points_cost;
-      await dbManager.run('UPDATE kids SET points = ? WHERE id = ?', [newPoints, kid_id]);
+      await dbManager.run('UPDATE kids SET points = ?, updated_at = ? WHERE id = ?', [newPoints, now, kid_id]);
     });
 
     const redemption = await dbManager.get(
@@ -1427,10 +1468,59 @@ app.put(
       return res.status(400).json({ error: 'Redemption already fulfilled.' });
     }
 
+    const now = new Date().toISOString();
     await dbManager.run(
-      "UPDATE reward_redemptions SET status = 'fulfilled', fulfilled_at = ? WHERE id = ?",
-      [new Date().toISOString(), id]
+      "UPDATE reward_redemptions SET status = 'fulfilled', fulfilled_at = ?, updated_at = ? WHERE id = ?",
+      [now, now, id]
     );
+
+    const updatedRedemption = await dbManager.get(
+      'SELECT * FROM reward_redemptions WHERE id = ?',
+      [id]
+    );
+    res.json({ success: true, redemption: updatedRedemption });
+  })
+);
+
+// Cancel / Refund a redemption
+app.put(
+  '/api/redemptions/:id/cancel',
+  parentAuth,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const redemption = await dbManager.get(
+      'SELECT * FROM reward_redemptions WHERE id = ? AND household_id = ?',
+      [id, req.householdId]
+    );
+    if (!redemption) {
+      return res.status(404).json({ error: 'Redemption record not found.' });
+    }
+
+    if (redemption.status === 'cancelled') {
+      return res.status(400).json({ error: 'Redemption already cancelled.' });
+    }
+
+    const reward = await dbManager.get('SELECT points_cost FROM rewards WHERE id = ?', [
+      redemption.reward_id
+    ]);
+    const kid = await dbManager.get('SELECT points FROM kids WHERE id = ?', [redemption.kid_id]);
+
+    const now = new Date().toISOString();
+    await dbManager.transaction(async () => {
+      await dbManager.run(
+        "UPDATE reward_redemptions SET status = 'cancelled', cancelled_at = ?, updated_at = ? WHERE id = ?",
+        [now, now, id]
+      );
+      if (kid && reward) {
+        const refundedPoints = kid.points + reward.points_cost;
+        await dbManager.run('UPDATE kids SET points = ?, updated_at = ? WHERE id = ?', [
+          refundedPoints,
+          now,
+          redemption.kid_id
+        ]);
+      }
+    });
 
     const updatedRedemption = await dbManager.get(
       'SELECT * FROM reward_redemptions WHERE id = ?',

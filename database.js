@@ -150,7 +150,9 @@ async function initDatabase() {
       parent_pin_hash TEXT NOT NULL,
       parent_pin_salt TEXT NOT NULL,
       recovery_key TEXT NOT NULL UNIQUE,
-      created_at TEXT NOT NULL
+      pin_changed_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     )
   `);
 
@@ -161,6 +163,7 @@ async function initDatabase() {
       household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
       role TEXT CHECK(role IN ('parent', 'kid')) DEFAULT 'kid',
       expires_at TEXT NOT NULL,
+      used_at TEXT,
       created_at TEXT NOT NULL
     )
   `);
@@ -173,7 +176,9 @@ async function initDatabase() {
       role TEXT CHECK(role IN ('parent', 'kid')) DEFAULT 'kid',
       device_name TEXT,
       last_seen_at TEXT NOT NULL,
-      created_at TEXT NOT NULL
+      revoked_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     )
   `);
 
@@ -187,7 +192,12 @@ async function initDatabase() {
       points INTEGER DEFAULT 0,
       color_theme TEXT DEFAULT 'purple',
       pin_hash TEXT NOT NULL,
-      pin_salt TEXT NOT NULL
+      pin_salt TEXT NOT NULL,
+      pin_changed_at TEXT,
+      last_active_at TEXT,
+      archived_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     )
   `);
 
@@ -202,7 +212,10 @@ async function initDatabase() {
       schedule_type TEXT CHECK(schedule_type IN ('daily', 'weekly', 'custom', 'alternate')) DEFAULT 'daily',
       schedule_days TEXT,
       assigned_to INTEGER REFERENCES kids(id) ON DELETE SET NULL,
-      is_active INTEGER DEFAULT 1
+      is_active INTEGER DEFAULT 1,
+      archived_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     )
   `);
 
@@ -217,7 +230,9 @@ async function initDatabase() {
       status TEXT CHECK(status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
       completed_at TEXT NOT NULL,
       approved_at TEXT,
-      feedback TEXT
+      rejected_at TEXT,
+      feedback TEXT,
+      updated_at TEXT NOT NULL
     )
   `);
 
@@ -229,7 +244,10 @@ async function initDatabase() {
       title TEXT NOT NULL,
       description TEXT,
       points_cost INTEGER NOT NULL,
-      is_active INTEGER DEFAULT 1
+      is_active INTEGER DEFAULT 1,
+      archived_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     )
   `);
 
@@ -241,8 +259,10 @@ async function initDatabase() {
       reward_id INTEGER NOT NULL REFERENCES rewards(id) ON DELETE CASCADE,
       kid_id INTEGER NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
       redeemed_at TEXT NOT NULL,
-      status TEXT CHECK(status IN ('pending', 'fulfilled')) DEFAULT 'pending',
-      fulfilled_at TEXT
+      status TEXT CHECK(status IN ('pending', 'fulfilled', 'cancelled')) DEFAULT 'pending',
+      fulfilled_at TEXT,
+      cancelled_at TEXT,
+      updated_at TEXT NOT NULL
     )
   `);
 
@@ -252,6 +272,7 @@ async function initDatabase() {
       household_id TEXT,
       key TEXT NOT NULL,
       value TEXT NOT NULL,
+      updated_at TEXT,
       PRIMARY KEY (household_id, key)
     )
   `);
@@ -312,6 +333,46 @@ async function runMigrations() {
     }
   }
 
+  // Timestamp columns across all tables
+  const timestampColumns = [
+    { table: 'households', column: 'updated_at', type: 'TEXT', backfillSql: "UPDATE households SET updated_at = created_at WHERE updated_at IS NULL" },
+    { table: 'households', column: 'pin_changed_at', type: 'TEXT' },
+    { table: 'pairing_codes', column: 'used_at', type: 'TEXT' },
+    { table: 'devices', column: 'updated_at', type: 'TEXT', backfillSql: "UPDATE devices SET updated_at = created_at WHERE updated_at IS NULL" },
+    { table: 'devices', column: 'revoked_at', type: 'TEXT' },
+    { table: 'kids', column: 'created_at', type: 'TEXT', backfillSql: "UPDATE kids SET created_at = datetime('now') WHERE created_at IS NULL" },
+    { table: 'kids', column: 'updated_at', type: 'TEXT', backfillSql: "UPDATE kids SET updated_at = COALESCE(created_at, datetime('now')) WHERE updated_at IS NULL" },
+    { table: 'kids', column: 'pin_changed_at', type: 'TEXT' },
+    { table: 'kids', column: 'last_active_at', type: 'TEXT' },
+    { table: 'kids', column: 'archived_at', type: 'TEXT' },
+    { table: 'chores', column: 'created_at', type: 'TEXT', backfillSql: "UPDATE chores SET created_at = datetime('now') WHERE created_at IS NULL" },
+    { table: 'chores', column: 'updated_at', type: 'TEXT', backfillSql: "UPDATE chores SET updated_at = COALESCE(created_at, datetime('now')) WHERE updated_at IS NULL" },
+    { table: 'chores', column: 'archived_at', type: 'TEXT' },
+    { table: 'chore_completions', column: 'rejected_at', type: 'TEXT' },
+    { table: 'chore_completions', column: 'updated_at', type: 'TEXT', backfillSql: "UPDATE chore_completions SET updated_at = COALESCE(approved_at, completed_at, datetime('now')) WHERE updated_at IS NULL" },
+    { table: 'rewards', column: 'created_at', type: 'TEXT', backfillSql: "UPDATE rewards SET created_at = datetime('now') WHERE created_at IS NULL" },
+    { table: 'rewards', column: 'updated_at', type: 'TEXT', backfillSql: "UPDATE rewards SET updated_at = COALESCE(created_at, datetime('now')) WHERE updated_at IS NULL" },
+    { table: 'rewards', column: 'archived_at', type: 'TEXT' },
+    { table: 'reward_redemptions', column: 'cancelled_at', type: 'TEXT' },
+    { table: 'reward_redemptions', column: 'updated_at', type: 'TEXT', backfillSql: "UPDATE reward_redemptions SET updated_at = COALESCE(fulfilled_at, redeemed_at, datetime('now')) WHERE updated_at IS NULL" },
+    { table: 'settings', column: 'updated_at', type: 'TEXT', backfillSql: "UPDATE settings SET updated_at = datetime('now') WHERE updated_at IS NULL" }
+  ];
+
+  for (const { table, column, type, backfillSql } of timestampColumns) {
+    const hasCol = await hasColumn(table, column);
+    if (!hasCol) {
+      logger.info(`Migrating table ${table}: adding ${column} column...`);
+      try {
+        await run(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+        if (backfillSql) {
+          await run(backfillSql);
+        }
+      } catch (err) {
+        logger.error(`Failed to add column ${column} to ${table}:`, err.message);
+      }
+    }
+  }
+
   // Check if legacy unpartitioned data exists
   try {
     const unpartitionedKids = await get('SELECT COUNT(*) as count FROM kids WHERE household_id IS NULL');
@@ -332,15 +393,15 @@ async function runMigrations() {
       const createdAt = new Date().toISOString();
 
       await run(
-        'INSERT OR IGNORE INTO households (id, name, parent_pin_hash, parent_pin_salt, recovery_key, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [defaultHouseholdId, guildName, pinHash, pinSalt, recoveryKey, createdAt]
+        'INSERT OR IGNORE INTO households (id, name, parent_pin_hash, parent_pin_salt, recovery_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [defaultHouseholdId, guildName, pinHash, pinSalt, recoveryKey, createdAt, createdAt]
       );
 
       // Create a master device token for the migrated household
       const masterDeviceToken = crypto.randomBytes(24).toString('hex');
       await run(
-        'INSERT OR IGNORE INTO devices (token, household_id, role, device_name, last_seen_at, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [masterDeviceToken, defaultHouseholdId, 'parent', 'Master Parent Device', new Date().toISOString(), new Date().toISOString()]
+        'INSERT OR IGNORE INTO devices (token, household_id, role, device_name, last_seen_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [masterDeviceToken, defaultHouseholdId, 'parent', 'Master Parent Device', new Date().toISOString(), new Date().toISOString(), new Date().toISOString()]
       );
 
       for (const table of tablesWithHousehold) {
@@ -372,7 +433,7 @@ async function runMigrations() {
       for (const k of unhashedKids) {
         const kidPin = (hasLegacyPinCol && k.pin) ? String(k.pin) : '1234';
         const { hash, salt } = hashPin(kidPin);
-        await run('UPDATE kids SET pin_hash = ?, pin_salt = ? WHERE id = ?', [hash, salt, k.id]);
+        await run('UPDATE kids SET pin_hash = ?, pin_salt = ?, updated_at = ? WHERE id = ?', [hash, salt, new Date().toISOString(), k.id]);
       }
       logger.info('Kid records successfully populated with hashed PIN credentials.');
     }
@@ -392,12 +453,13 @@ async function seedHouseholdDefaults(householdId) {
       return;
     }
     const seedsData = JSON.parse(fs.readFileSync(seedsPath, 'utf8'));
+    const now = new Date().toISOString();
 
     // Seed Chores
     if (Array.isArray(seedsData.chores)) {
       for (const chore of seedsData.chores) {
         await run(
-          'INSERT INTO chores (household_id, title, description, points, schedule_type, schedule_days, assigned_to) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO chores (household_id, title, description, points, schedule_type, schedule_days, assigned_to, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             householdId,
             chore.title,
@@ -405,7 +467,9 @@ async function seedHouseholdDefaults(householdId) {
             chore.points,
             chore.schedule_type || 'daily',
             chore.schedule_days || null,
-            null
+            null,
+            now,
+            now
           ]
         );
       }
@@ -415,8 +479,8 @@ async function seedHouseholdDefaults(householdId) {
     if (Array.isArray(seedsData.rewards)) {
       for (const reward of seedsData.rewards) {
         await run(
-          'INSERT INTO rewards (household_id, title, description, points_cost) VALUES (?, ?, ?, ?)',
-          [householdId, reward.title, reward.description || '', reward.points_cost]
+          'INSERT INTO rewards (household_id, title, description, points_cost, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [householdId, reward.title, reward.description || '', reward.points_cost, now, now]
         );
       }
     }
